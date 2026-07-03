@@ -1,0 +1,28 @@
+import { User, ChevronRight } from "lucide-react";
+import { ProfileTabs } from "@/components/ProfileTabs";
+
+export default function ProfilePage() {
+  return (
+    <main className="min-h-screen bg-white px-5 pt-10 pb-28">
+      <div className="flex flex-col items-center text-center">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-neutral-100">
+          <User size={30} className="text-neutral-400" />
+        </div>
+
+        <h1 className="mt-3 text-base font-semibold text-neutral-900">Username</h1>
+        <p className="mt-1 text-sm text-neutral-400">Your bio will show up here</p>
+
+        <button className="mt-4 rounded-full bg-neutral-100 px-5 py-2 text-sm font-medium text-neutral-700">
+          Edit profile
+        </button>
+
+        <button className="mt-4 flex w-full items-center justify-between rounded-2xl bg-neutral-50 px-4 py-3">
+          <span className="text-sm font-medium text-neutral-700">0 friends</span>
+          <ChevronRight size={16} className="text-neutral-400" />
+        </button>
+      </div>
+
+      <ProfileTabs />
+    </main>
+  );
+}
