@@ -35,14 +35,17 @@ export default function EditProfilePage() {
     }
 
     function handleSave() {
-        localStorage.setItem("username", username);
-        localStorage.setItem("bio", bio);
-
-        if (profileImage) {
-            localStorage.setItem("profileImage", profileImage);
+        try {
+            localStorage.setItem("username", username);
+            localStorage.setItem("bio", bio);
+            if (profileImage) {
+                localStorage.setItem("profileImage", profileImage);
+            }
+            router.push("/profile");
+        } catch (error) {
+            console.error(error);
+            alert("Couldn't save — the photo might be too large.");
         }
-
-        router.push("/profile");
     }
 
     return (

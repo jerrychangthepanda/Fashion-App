@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { User, ChevronRight } from "lucide-react";
+import { User, ChevronRight, Settings } from "lucide-react";
 import { ProfileTabs } from "@/components/ProfileTabs";
 
 export default function ProfilePage() {
@@ -22,6 +22,11 @@ export default function ProfilePage() {
 
     return (
         <main className="min-h-screen bg-white px-5 pt-10 pb-28">
+            <div className="flex justify-end px-1">
+                <Link href="/profile/settings" aria-label="Settings">
+                    <Settings size={22} className="text-neutral-700" />
+                </Link>
+            </div>
             <div className="flex flex-col items-center text-center">
                 <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
                     {profileImage ? (
