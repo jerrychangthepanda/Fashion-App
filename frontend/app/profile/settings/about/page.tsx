@@ -2,7 +2,7 @@ import { BackHeader } from "@/components/BackHeader";
 
 export default function AboutPage() {
     return (
-        <main className="min-h-screen bg-white px-5 pt-6 pb-28">
+        <main className="min-h-screen bg-white px-5 pt-6 pb-[var(--bottom-nav-height)]">
             <BackHeader title="About" />
             <div className="mt-10 space-y-4 text-center">
                 <p className="text-sm text-neutral-500">Version 0.1.0 (MVP)</p>

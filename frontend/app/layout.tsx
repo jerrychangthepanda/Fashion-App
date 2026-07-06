@@ -31,10 +31,12 @@ export default function RootLayout({
     >
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-neutral-100`}>
         <div
-          className="relative mx-auto min-h-screen max-w-[480px] bg-white"
+          className="relative mx-auto h-dvh max-w-[480px] overflow-hidden bg-white"
           style={{ transform: "translateZ(0)" }}
         >
-          {children}
+          <div className="h-full overflow-y-auto">
+            {children}
+          </div>
           <BottomNav />
         </div>
       </body>

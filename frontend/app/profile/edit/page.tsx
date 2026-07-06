@@ -49,7 +49,7 @@ export default function EditProfilePage() {
     }
 
     return (
-        <main className="min-h-screen bg-white px-5 pt-10 pb-28">
+        <main className="min-h-screen bg-white px-5 pt-10 pb-[var(--bottom-nav-height)]">
             <h1 className="text-center text-xl font-semibold text-neutral-900">
                 Edit Profile
             </h1>

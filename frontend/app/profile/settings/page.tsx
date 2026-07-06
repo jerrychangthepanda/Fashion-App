@@ -36,7 +36,7 @@ export default function SettingsPage() {
     }
 
     return (
-        <main className="min-h-screen bg-white px-5 pt-6 pb-28">
+        <main className="min-h-screen bg-white px-5 pt-6 pb-[var(--bottom-nav-height)]">
             <BackHeader title="Settings" />
 
             <div className="mt-8 space-y-6">
