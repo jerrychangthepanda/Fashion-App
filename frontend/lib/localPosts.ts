@@ -1,4 +1,5 @@
 import type { Post } from "@/lib/mockData";
+import { removePostFromAllCollections } from "@/lib/collections";
 
 export type MusicTrack = {
     title: string;
@@ -27,20 +28,50 @@ export function getLocalPosts(): LocalPost[] {
     }
 }
 
-export function saveLocalPost(post: LocalPost) {
-    if (typeof window === "undefined") return;
+export function saveLocalPost(post: LocalPost): boolean {
+    if (typeof window === "undefined") return false;
 
     const currentPosts = getLocalPosts();
     const updatedPosts = [post, ...currentPosts];
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedPosts));
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedPosts));
+        return true;
+    } catch (error) {
+        console.error("Failed to save post:", error);
+        return false;
+    }
 }
 
-export function deleteLocalPost(postId: string) {
-    if (typeof window === "undefined") return;
+export function deleteLocalPost(postId: string): boolean {
+    if (typeof window === "undefined") return false;
 
     const currentPosts = getLocalPosts();
     const updatedPosts = currentPosts.filter((post) => post.id !== postId);
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedPosts));
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedPosts));
+        removePostFromAllCollections(postId);
+        return true;
+    } catch (error) {
+        console.error("Failed to delete post:", error);
+        return false;
+    }
+}
+
+export function updateLocalPost(postId: string, updates: Partial<LocalPost>): boolean {
+    if (typeof window === "undefined") return false;
+
+    const currentPosts = getLocalPosts();
+    const updatedPosts = currentPosts.map((post) =>
+        post.id === postId ? { ...post, ...updates } : post
+    );
+
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedPosts));
+        return true;
+    } catch (error) {
+        console.error("Failed to update post:", error);
+        return false;
+    }
 }

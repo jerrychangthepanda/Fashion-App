@@ -143,7 +143,7 @@ export default function CreatePage() {
             .map((tag) => tag.trim())
             .filter(Boolean);
 
-        saveLocalPost({
+        const success = saveLocalPost({
             id: crypto.randomUUID(),
             username: "you",
             timeAgo: "now",
@@ -155,7 +155,11 @@ export default function CreatePage() {
             music: selectedSong ?? undefined,
         });
 
-        router.push("/");
+        if (success) {
+            router.push("/");
+        } else {
+            alert("Couldn't save your post — storage might be full. Try a smaller photo or clear some old posts.");
+        }
     }
 
     useEffect(() => {

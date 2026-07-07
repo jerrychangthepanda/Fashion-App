@@ -16,7 +16,15 @@ import type { LocalPost } from "@/lib/localPosts";
 import { CommentsSheet } from "@/components/CommentsSheet";
 import { PostOptionsMenu } from "@/components/PostOptionsMenu";
 
-export function PostCard({ post, onHide }: { post: LocalPost; onHide: () => void }) {
+export function PostCard({
+    post,
+    onHide,
+    onDelete,
+}: {
+    post: LocalPost;
+    onHide: () => void;
+    onDelete?: () => void;
+}) {
     const [liked, setLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(post.likes);
     const [showComments, setShowComments] = useState(false);
@@ -69,6 +77,7 @@ export function PostCard({ post, onHide }: { post: LocalPost; onHide: () => void
                     onClose={() => setShowOptions(false)}
                     post={post}
                     onHide={onHide}
+                    onDelete={onDelete}
                 />
             </div>
 

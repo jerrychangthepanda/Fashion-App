@@ -12,8 +12,11 @@ import {
     Images,
     Music,
     Image as ImageIcon,
+    Plus,
 } from "lucide-react";
 import type { LocalPost } from "@/lib/localPosts";
+import { getCollections, createCollection, type Collection } from "@/lib/collections";
+import { CollectionTile } from "@/components/CollectionTile";
 
 export function ProfileView({
     username,
@@ -21,17 +24,37 @@ export function ProfileView({
     avatarImage,
     isOwnProfile,
     posts = [],
+    collections = [],
 }: {
     username: string;
     bio: string;
     avatarImage?: string | null;
     isOwnProfile: boolean;
     posts?: LocalPost[];
+    collections?: Collection[];
     onPostDeleted?: (postId: string) => void;
 }) {
     const router = useRouter();
     const [following, setFollowing] = useState(false);
     const [activeTab, setActiveTab] = useState<"posts" | "collections">("posts");
+    const [localCollections, setLocalCollections] = useState<Collection[]>(collections);
+
+    function handleCreateCollection() {
+        const name = window.prompt("Name this collection:");
+        if (!name || !name.trim()) return;
+
+        const newCollection = createCollection(name.trim());
+        if (!newCollection) {
+            alert("Couldn't create the collection — storage might be full.");
+            return;
+        }
+
+        router.push(`/profile/collections/${newCollection.id}/add`);
+    }
+
+    function handleOpenCollection(collectionId: string) {
+        router.push(`/profile/collections/${collectionId}`);
+    }
 
     return (
         <main className="min-h-screen bg-white px-5 pt-6 pb-[var(--bottom-nav-height)]">
@@ -116,7 +139,10 @@ export function ProfileView({
                     </button>
 
                     <button
-                        onClick={() => setActiveTab("collections")}
+                        onClick={() => {
+                            setActiveTab("collections");
+                            setLocalCollections(getCollections());
+                        }}
                         className={`flex flex-col items-center py-3 text-xs ${activeTab === "collections"
                                 ? "border-b-2 border-neutral-950 font-medium text-neutral-950"
                                 : "text-neutral-400"
@@ -126,7 +152,6 @@ export function ProfileView({
                         <span className="mt-1">Collections</span>
                     </button>
                 </div>
-
                 {activeTab === "posts" ? (
                     posts.length === 0 ? (
                         <div className="flex h-40 items-center justify-center">
@@ -164,6 +189,24 @@ export function ProfileView({
                             ))}
                         </div>
                     )
+                ) : isOwnProfile ? (
+                    <div className="grid grid-cols-3 gap-4 pt-4">
+                        {localCollections.map((collection) => (
+                            <CollectionTile
+                                key={collection.id}
+                                collection={collection}
+                                posts={posts}
+                                onClick={() => handleOpenCollection(collection.id)}
+                            />
+                        ))}
+
+                        <button onClick={handleCreateCollection} className="flex flex-col items-center gap-1.5">
+                            <div className="flex aspect-square w-full items-center justify-center rounded-xl border-2 border-dashed border-neutral-300">
+                                <Plus size={22} className="text-neutral-400" />
+                            </div>
+                            <span className="text-xs font-medium text-neutral-500">Create new</span>
+                        </button>
+                    </div>
                 ) : (
                     <div className="flex h-40 items-center justify-center">
                         <p className="text-sm text-neutral-400">

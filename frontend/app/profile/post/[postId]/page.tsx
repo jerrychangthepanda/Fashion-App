@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
     ChevronLeft,
@@ -10,21 +10,27 @@ import {
     MessageCircle,
     MoreHorizontal,
     Music,
+    Pencil,
     Trash2,
+    Bookmark,
     User,
     Volume2,
     VolumeX,
+    FolderMinus,
 } from "lucide-react";
 import {
     deleteLocalPost,
     getLocalPosts,
     type LocalPost,
 } from "@/lib/localPosts";
+import { togglePostInCollection } from "@/lib/collections";
 import { CommentsSheet } from "@/components/CommentsSheet";
 
 export default function ProfilePostPage() {
     const router = useRouter();
     const params = useParams();
+    const searchParams = useSearchParams();
+    const fromCollection = searchParams.get("fromCollection");
 
     const postId = params.postId as string;
 
@@ -79,6 +85,12 @@ export default function ProfilePostPage() {
 
         deleteLocalPost(post.id);
         router.push("/profile");
+    }
+
+    function handleRemoveFromCollection() {
+        if (!fromCollection) return;
+        togglePostInCollection(fromCollection, postId);
+        router.push(`/profile/collections/${fromCollection}`);
     }
 
     if (postMissing) {
@@ -142,7 +154,32 @@ export default function ProfilePostPage() {
                     </button>
 
                     {showOptions && (
-                        <div className="absolute right-0 top-11 z-30 w-36 overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-black/5">
+                        <div className="absolute right-0 top-11 z-30 w-40 overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-black/5">
+                            <button
+                                onClick={() => router.push(`/profile/post/${post.id}/edit`)}
+                                className="flex w-full items-center gap-2 border-b border-neutral-100 px-3 py-3 text-left text-sm font-medium text-neutral-900"
+                            >
+                                <Pencil size={15} />
+                                Edit post
+                            </button>
+
+                            <button 
+                                onClick={() => router.push(`/profile/post/${post.id}/collections`)}
+                                className="flex w-full items-center gap-2 border-b border-neutral-100 px-3 py-3 text-left text-sm font-medium text-neutral-900">
+                                <Bookmark size={15} />
+                                Add to Collection
+                            </button>
+
+                            {fromCollection && (
+                                <button
+                                    onClick={handleRemoveFromCollection}
+                                    className="flex w-full items-center gap-2 border-b border-neutral-100 px-3 py-3 text-left text-sm font-medium text-neutral-900"
+                                >
+                                    <FolderMinus size={15} />
+                                    Remove from Collection
+                                </button>
+                            )}
+
                             <button
                                 onClick={handleDeletePost}
                                 className="flex w-full items-center gap-2 px-3 py-3 text-left text-sm font-medium text-red-600"
