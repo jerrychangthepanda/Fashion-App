@@ -1,22 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import type { Post } from "@/lib/mockData";
 import { PostCard } from "@/components/PostCard";
+import type { LocalPost } from "@/lib/localPosts";
 
-export function FeedList({ posts }: { posts: Post[] }) {
-    const [hiddenIds, setHiddenIds] = useState<string[]>([]);
+export function FeedList({ posts }: { posts: LocalPost[] }) {
+    const [hiddenPostIds, setHiddenPostIds] = useState<string[]>([]);
 
-    function hidePost(id: string) {
-        setHiddenIds((prev) => [...prev, id]);
-    }
-
-    const visiblePosts = posts.filter((post) => !hiddenIds.includes(post.id));
+    const visiblePosts = posts.filter((post) => !hiddenPostIds.includes(post.id));
 
     return (
         <div>
             {visiblePosts.map((post) => (
-                <PostCard key={post.id} post={post} onHide={() => hidePost(post.id)} />
+                <PostCard
+                    key={post.id}
+                    post={post}
+                    onHide={() => setHiddenPostIds((ids) => [...ids, post.id])}
+                />
             ))}
         </div>
     );

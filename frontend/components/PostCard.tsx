@@ -1,21 +1,50 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
-import { Heart, MessageCircle, MoreHorizontal, User, Image as ImageIcon } from "lucide-react";
-import type { Post } from "@/lib/mockData";
+import {
+    Heart,
+    Image as ImageIcon,
+    MessageCircle,
+    MoreHorizontal,
+    Music,
+    User,
+    Volume2,
+    VolumeX,
+} from "lucide-react";
+import type { LocalPost } from "@/lib/localPosts";
 import { CommentsSheet } from "@/components/CommentsSheet";
 import { PostOptionsMenu } from "@/components/PostOptionsMenu";
 
-export function PostCard({ post, onHide }: { post: Post; onHide: () => void }) {
+export function PostCard({ post, onHide }: { post: LocalPost; onHide: () => void }) {
     const [liked, setLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(post.likes);
     const [showComments, setShowComments] = useState(false);
     const [showOptions, setShowOptions] = useState(false);
+    const [musicPlaying, setMusicPlaying] = useState(false);
+
+    const audioRef = useRef<HTMLAudioElement | null>(null);
 
     function toggleLike() {
         setLikeCount((count) => (liked ? count - 1 : count + 1));
         setLiked(!liked);
+    }
+
+    async function toggleMusic() {
+        const audio = audioRef.current;
+        if (!audio) return;
+
+        try {
+            if (musicPlaying) {
+                audio.pause();
+                setMusicPlaying(false);
+            } else {
+                await audio.play();
+                setMusicPlaying(true);
+            }
+        } catch (error) {
+            console.error("Could not play audio:", error);
+        }
     }
 
     return (
@@ -43,11 +72,65 @@ export function PostCard({ post, onHide }: { post: Post; onHide: () => void }) {
                 />
             </div>
 
-            <div className="mx-4 flex aspect-[4/5] items-center justify-center rounded-2xl bg-neutral-100">
-                <ImageIcon size={28} className="text-neutral-300" />
+            <div className="mx-4 flex aspect-[4/5] items-center justify-center overflow-hidden rounded-2xl bg-neutral-100">
+                {post.imageUrl ? (
+                    <img
+                        src={post.imageUrl}
+                        alt={post.caption || "Fashion post"}
+                        className="h-full w-full object-cover"
+                    />
+                ) : (
+                    <ImageIcon size={28} className="text-neutral-300" />
+                )}
             </div>
 
             <div className="px-4 pt-3">
+                {post.music && (
+                    <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl bg-neutral-100 px-3 py-2">
+                        <div className="flex min-w-0 items-center gap-3">
+                            {post.music.artworkUrl ? (
+                                <img
+                                    src={post.music.artworkUrl}
+                                    alt=""
+                                    className="h-10 w-10 rounded-xl object-cover"
+                                />
+                            ) : (
+                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white">
+                                    <Music size={16} className="text-neutral-600" />
+                                </div>
+                            )}
+
+                            <div className="min-w-0">
+                                <p className="truncate text-sm font-medium text-neutral-900">
+                                    {post.music.title}
+                                </p>
+                                <p className="truncate text-xs text-neutral-500">
+                                    {post.music.artist}
+                                </p>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={toggleMusic}
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white"
+                            aria-label={musicPlaying ? "Pause music" : "Play music"}
+                        >
+                            {musicPlaying ? (
+                                <Volume2 size={17} className="text-neutral-700" />
+                            ) : (
+                                <VolumeX size={17} className="text-neutral-700" />
+                            )}
+                        </button>
+
+                        <audio
+                            ref={audioRef}
+                            src={post.music.previewUrl}
+                            onPause={() => setMusicPlaying(false)}
+                            onEnded={() => setMusicPlaying(false)}
+                        />
+                    </div>
+                )}
+
                 <p className="text-sm text-neutral-900">{post.caption}</p>
 
                 {post.tags.length > 0 && (
@@ -71,7 +154,11 @@ export function PostCard({ post, onHide }: { post: Post; onHide: () => void }) {
                         />
                         <span className="text-sm text-neutral-500">{likeCount}</span>
                     </button>
-                    <button onClick={() => setShowComments(true)} className="flex items-center gap-1.5">
+
+                    <button
+                        onClick={() => setShowComments(true)}
+                        className="flex items-center gap-1.5"
+                    >
                         <MessageCircle size={18} className="text-neutral-500" />
                         <span className="text-sm text-neutral-500">{post.comments}</span>
                     </button>
