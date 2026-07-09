@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Bell, Music, Search, Tag, User, X } from "lucide-react";
 import { MOCK_POSTS } from "@/lib/mockData";
+import { MOCK_USERS } from "@/lib/users";
 import { FeedList } from "@/components/FeedList";
 import { getLocalPosts, type LocalPost } from "@/lib/localPosts";
 
@@ -50,15 +51,16 @@ export default function FeedPage() {
             };
         }
 
-        const profileMap = new Map<string, string>();
+        const matchingProfiles = MOCK_USERS.filter(
+            (user) =>
+                user.username.toLowerCase().includes(query) ||
+                user.name.toLowerCase().includes(query)
+        ).map((user) => user.username);
+
         const brandMap = new Map<string, string>();
         const musicMap = new Map<string, string>();
 
         posts.forEach((post) => {
-            if (post.username.toLowerCase().includes(query)) {
-                profileMap.set(post.username.toLowerCase(), post.username);
-            }
-
             post.tags.forEach((tag) => {
                 if (tag.toLowerCase().includes(query)) {
                     brandMap.set(tag.toLowerCase(), tag);
@@ -78,7 +80,7 @@ export default function FeedPage() {
         });
 
         return {
-            profiles: Array.from(profileMap.values()),
+            profiles: matchingProfiles,
             brands: Array.from(brandMap.values()),
             music: Array.from(musicMap.values()),
         };

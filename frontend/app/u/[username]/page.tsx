@@ -1,13 +1,15 @@
 import { ProfileView } from "@/components/ProfileView";
 
-export default function UserProfilePage({
+export default async function UserProfilePage({
     params,
 }: {
-    params: { username: string };
+    params: Promise<{ username: string }>;
 }) {
+    const { username } = await params;
+
     return (
         <ProfileView
-            username={params.username}
+            username={username}
             bio="This user hasn't added a bio yet"
             avatarImage={null}
             isOwnProfile={false}

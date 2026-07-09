@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -18,64 +18,8 @@ import {
 import type { LocalPost } from "@/lib/localPosts";
 import { getCollections, createCollection, type Collection } from "@/lib/collections";
 import { CollectionTile } from "@/components/CollectionTile";
-
-type FollowUser = {
-    username: string;
-    name: string;
-    bio: string;
-    avatarImage?: string | null;
-};
-
-const MOCK_FOLLOWING: FollowUser[] = [
-    {
-        username: "matthew.l",
-        name: "Matthew Lee",
-        bio: "Coffee runs and clean fits",
-    },
-    {
-        username: "juliaa.s",
-        name: "Julia Smith",
-        bio: "Denim, basics, and daily outfits",
-    },
-    {
-        username: "dev.kim",
-        name: "Dev Kim",
-        bio: "Office fits and minimal style",
-    },
-    {
-        username: "ana.torres",
-        name: "Ana Torres",
-        bio: "Weekend outfits and streetwear",
-    },
-];
-
-const MOCK_FOLLOWERS: FollowUser[] = [
-    {
-        username: "brandon.fit",
-        name: "Brandon",
-        bio: "Streetwear and sneakers",
-    },
-    {
-        username: "stylebymaya",
-        name: "Maya",
-        bio: "Neutral outfits and styling ideas",
-    },
-    {
-        username: "ethan.w",
-        name: "Ethan Walker",
-        bio: "Vintage jackets and denim",
-    },
-    {
-        username: "sofia.closet",
-        name: "Sofia",
-        bio: "Closet inspo and everyday fits",
-    },
-    {
-        username: "matthew.l",
-        name: "Matthew Lee",
-        bio: "Coffee runs and clean fits",
-    },
-];
+import { MOCK_FOLLOWING, MOCK_FOLLOWERS, getUsersByUsernames, type MockUser } from "@/lib/users";
+import { followUser, getFollowingUsernames, isFollowing, unfollowUser } from "@/lib/follows";
 
 function FollowListSheet({
     open,
@@ -85,7 +29,7 @@ function FollowListSheet({
 }: {
     open: boolean;
     title: string;
-    users: FollowUser[];
+    users: MockUser[];
     onClose: () => void;
 }) {
     const [searchQuery, setSearchQuery] = useState("");
@@ -107,7 +51,7 @@ function FollowListSheet({
     if (!open) return null;
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/30">
+        <div className="fixed inset-0 z-[60] bg-black/30">
             <button
                 className="absolute inset-0 h-full w-full"
                 aria-label="Close"
@@ -219,9 +163,29 @@ export function ProfileView({
     const [activeTab, setActiveTab] = useState<"posts" | "collections">("posts");
     const [localCollections, setLocalCollections] = useState<Collection[]>(collections);
     const [openFollowList, setOpenFollowList] = useState<"following" | "followers" | null>(null);
+    const [followingUsers, setFollowingUsers] = useState<MockUser[]>(MOCK_FOLLOWING);
 
-    const followingUsers = MOCK_FOLLOWING;
     const followerUsers = MOCK_FOLLOWERS;
+
+    useEffect(() => {
+        setFollowingUsers(getUsersByUsernames(getFollowingUsernames()));
+
+        if (!isOwnProfile) {
+            setFollowing(isFollowing(username));
+        }
+    }, [isOwnProfile, username]);
+
+    function handleToggleFollow() {
+        const nextFollowing = !following;
+        setFollowing(nextFollowing);
+
+        const success = nextFollowing ? followUser(username) : unfollowUser(username);
+
+        if (!success) {
+            alert("Couldn't update follow status - storage might be full.");
+            setFollowing(!nextFollowing);
+        }
+    }
 
     function handleCreateCollection() {
         const name = window.prompt("Name this collection:");
@@ -291,7 +255,7 @@ export function ProfileView({
                     </Link>
                 ) : (
                     <button
-                        onClick={() => setFollowing(!following)}
+                        onClick={handleToggleFollow}
                         className={`mt-4 rounded-full px-5 py-2 text-sm font-medium ${following
                                 ? "bg-neutral-100 text-neutral-700"
                                 : "bg-neutral-900 text-white"
