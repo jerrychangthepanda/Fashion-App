@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
     User,
-    ChevronRight,
     ChevronLeft,
     Settings,
     Grid2X2,
@@ -13,10 +12,191 @@ import {
     Music,
     Image as ImageIcon,
     Plus,
+    Search,
+    X,
 } from "lucide-react";
 import type { LocalPost } from "@/lib/localPosts";
 import { getCollections, createCollection, type Collection } from "@/lib/collections";
 import { CollectionTile } from "@/components/CollectionTile";
+
+type FollowUser = {
+    username: string;
+    name: string;
+    bio: string;
+    avatarImage?: string | null;
+};
+
+const MOCK_FOLLOWING: FollowUser[] = [
+    {
+        username: "matthew.l",
+        name: "Matthew Lee",
+        bio: "Coffee runs and clean fits",
+    },
+    {
+        username: "juliaa.s",
+        name: "Julia Smith",
+        bio: "Denim, basics, and daily outfits",
+    },
+    {
+        username: "dev.kim",
+        name: "Dev Kim",
+        bio: "Office fits and minimal style",
+    },
+    {
+        username: "ana.torres",
+        name: "Ana Torres",
+        bio: "Weekend outfits and streetwear",
+    },
+];
+
+const MOCK_FOLLOWERS: FollowUser[] = [
+    {
+        username: "brandon.fit",
+        name: "Brandon",
+        bio: "Streetwear and sneakers",
+    },
+    {
+        username: "stylebymaya",
+        name: "Maya",
+        bio: "Neutral outfits and styling ideas",
+    },
+    {
+        username: "ethan.w",
+        name: "Ethan Walker",
+        bio: "Vintage jackets and denim",
+    },
+    {
+        username: "sofia.closet",
+        name: "Sofia",
+        bio: "Closet inspo and everyday fits",
+    },
+    {
+        username: "matthew.l",
+        name: "Matthew Lee",
+        bio: "Coffee runs and clean fits",
+    },
+];
+
+function FollowListSheet({
+    open,
+    title,
+    users,
+    onClose,
+}: {
+    open: boolean;
+    title: string;
+    users: FollowUser[];
+    onClose: () => void;
+}) {
+    const [searchQuery, setSearchQuery] = useState("");
+
+    const filteredUsers = useMemo(() => {
+        const query = searchQuery.toLowerCase().trim();
+
+        if (!query) return users;
+
+        return users.filter((user) => {
+            return (
+                user.username.toLowerCase().includes(query) ||
+                user.name.toLowerCase().includes(query) ||
+                user.bio.toLowerCase().includes(query)
+            );
+        });
+    }, [users, searchQuery]);
+
+    if (!open) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 bg-black/30">
+            <button
+                className="absolute inset-0 h-full w-full"
+                aria-label="Close"
+                onClick={onClose}
+            />
+
+            <div className="absolute bottom-0 left-0 right-0 max-h-[80vh] rounded-t-3xl bg-white pb-6">
+                <div className="flex items-center justify-between border-b border-neutral-100 px-5 py-4">
+                    <h2 className="text-base font-semibold text-neutral-900">{title}</h2>
+
+                    <button
+                        onClick={onClose}
+                        aria-label="Close"
+                        className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-100"
+                    >
+                        <X size={17} className="text-neutral-600" />
+                    </button>
+                </div>
+
+                <div className="px-4 py-3">
+                    <div className="flex items-center gap-2 rounded-full bg-neutral-100 px-4 py-2.5">
+                        <Search size={18} className="text-neutral-400" />
+
+                        <input
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder={`Search ${title.toLowerCase()}`}
+                            className="w-full bg-transparent text-sm text-neutral-900 outline-none placeholder:text-neutral-400"
+                        />
+
+                        {searchQuery && (
+                            <button onClick={() => setSearchQuery("")} aria-label="Clear search">
+                                <X size={16} className="text-neutral-400" />
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                <div className="max-h-[55vh] overflow-y-auto px-4">
+                    {filteredUsers.length === 0 ? (
+                        <div className="py-12 text-center">
+                            <p className="text-sm font-medium text-neutral-700">
+                                No users found
+                            </p>
+                            <p className="mt-1 text-sm text-neutral-400">
+                                Try searching another name or username.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="space-y-1">
+                            {filteredUsers.map((user) => (
+                                <Link
+                                    key={user.username}
+                                    href={`/u/${user.username}`}
+                                    onClick={onClose}
+                                    className="flex items-center gap-3 rounded-2xl px-2 py-3 hover:bg-neutral-50"
+                                >
+                                    <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
+                                        {user.avatarImage ? (
+                                            <img
+                                                src={user.avatarImage}
+                                                alt={user.name}
+                                                className="h-full w-full object-cover"
+                                            />
+                                        ) : (
+                                            <User size={18} className="text-neutral-400" />
+                                        )}
+                                    </div>
+
+                                    <div className="min-w-0 flex-1">
+                                        <p className="truncate text-sm font-semibold text-neutral-900">
+                                            {user.username}
+                                        </p>
+                                        <p className="truncate text-xs text-neutral-500">
+                                            {user.name}
+                                        </p>
+                                        <p className="truncate text-xs text-neutral-400">
+                                            {user.bio}
+                                        </p>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export function ProfileView({
     username,
@@ -38,6 +218,10 @@ export function ProfileView({
     const [following, setFollowing] = useState(false);
     const [activeTab, setActiveTab] = useState<"posts" | "collections">("posts");
     const [localCollections, setLocalCollections] = useState<Collection[]>(collections);
+    const [openFollowList, setOpenFollowList] = useState<"following" | "followers" | null>(null);
+
+    const followingUsers = MOCK_FOLLOWING;
+    const followerUsers = MOCK_FOLLOWERS;
 
     function handleCreateCollection() {
         const name = window.prompt("Name this collection:");
@@ -45,7 +229,7 @@ export function ProfileView({
 
         const newCollection = createCollection(name.trim());
         if (!newCollection) {
-            alert("Couldn't create the collection — storage might be full.");
+            alert("Couldn't create the collection - storage might be full.");
             return;
         }
 
@@ -117,12 +301,31 @@ export function ProfileView({
                     </button>
                 )}
 
-                <button className="mt-4 flex w-full items-center justify-between rounded-2xl bg-neutral-50 px-4 py-3">
-                    <span className="text-sm font-medium text-neutral-700">
-                        0 friends
-                    </span>
-                    <ChevronRight size={16} className="text-neutral-400" />
-                </button>
+                <div className="mt-4 grid w-full grid-cols-2 overflow-hidden rounded-2xl bg-neutral-50">
+                    <button
+                        onClick={() => setOpenFollowList("following")}
+                        className="border-r border-neutral-100 px-4 py-3 text-center"
+                    >
+                        <p className="text-base font-semibold text-neutral-900">
+                            {followingUsers.length}
+                        </p>
+                        <p className="text-xs font-medium text-neutral-500">
+                            Following
+                        </p>
+                    </button>
+
+                    <button
+                        onClick={() => setOpenFollowList("followers")}
+                        className="px-4 py-3 text-center"
+                    >
+                        <p className="text-base font-semibold text-neutral-900">
+                            {followerUsers.length}
+                        </p>
+                        <p className="text-xs font-medium text-neutral-500">
+                            Followers
+                        </p>
+                    </button>
+                </div>
             </div>
 
             <div className="mt-4 border-t border-neutral-200">
@@ -152,6 +355,7 @@ export function ProfileView({
                         <span className="mt-1">Collections</span>
                     </button>
                 </div>
+
                 {activeTab === "posts" ? (
                     posts.length === 0 ? (
                         <div className="flex h-40 items-center justify-center">
@@ -200,11 +404,16 @@ export function ProfileView({
                             />
                         ))}
 
-                        <button onClick={handleCreateCollection} className="flex flex-col items-center gap-1.5">
+                        <button
+                            onClick={handleCreateCollection}
+                            className="flex flex-col items-center gap-1.5"
+                        >
                             <div className="flex aspect-square w-full items-center justify-center rounded-xl border-2 border-dashed border-neutral-300">
                                 <Plus size={22} className="text-neutral-400" />
                             </div>
-                            <span className="text-xs font-medium text-neutral-500">Create new</span>
+                            <span className="text-xs font-medium text-neutral-500">
+                                Create new
+                            </span>
                         </button>
                     </div>
                 ) : (
@@ -215,6 +424,20 @@ export function ProfileView({
                     </div>
                 )}
             </div>
+
+            <FollowListSheet
+                open={openFollowList === "following"}
+                title="Following"
+                users={followingUsers}
+                onClose={() => setOpenFollowList(null)}
+            />
+
+            <FollowListSheet
+                open={openFollowList === "followers"}
+                title="Followers"
+                users={followerUsers}
+                onClose={() => setOpenFollowList(null)}
+            />
         </main>
     );
 }
