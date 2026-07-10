@@ -118,7 +118,10 @@ export default function CreatePage() {
             const data = await response.json();
 
             const songs: MusicTrack[] = data.results
-                .filter((song: ITunesSong) => song.trackName && song.artistName && song.previewUrl)
+                .filter(
+                    (song: ITunesSong) =>
+                        song.trackName && song.artistName && song.previewUrl
+                )
                 .map((song: ITunesSong) => ({
                     title: song.trackName as string,
                     artist: song.artistName as string,
@@ -138,6 +141,8 @@ export default function CreatePage() {
     function postPhoto() {
         if (!capturedPhoto) return;
 
+        const savedUsername = localStorage.getItem("username") || "you";
+
         const tags = tagsText
             .split(",")
             .map((tag) => tag.trim())
@@ -145,7 +150,7 @@ export default function CreatePage() {
 
         const success = saveLocalPost({
             id: crypto.randomUUID(),
-            username: "you",
+            username: savedUsername,
             timeAgo: "now",
             caption: caption.trim() || "new fit",
             tags,
@@ -158,7 +163,9 @@ export default function CreatePage() {
         if (success) {
             router.push("/");
         } else {
-            alert("Couldn't save your post — storage might be full. Try a smaller photo or clear some old posts.");
+            alert(
+                "Couldn't save your post - storage might be full. Try a smaller photo or clear some old posts."
+            );
         }
     }
 
@@ -213,7 +220,8 @@ export default function CreatePage() {
                         autoPlay
                         playsInline
                         muted
-                        className={`h-full w-full object-cover ${showVideo ? "block" : "hidden"}`}
+                        className={`h-full w-full object-cover ${showVideo ? "block" : "hidden"
+                            }`}
                     />
 
                     {capturedPhoto && (
@@ -227,7 +235,9 @@ export default function CreatePage() {
                     {!cameraOn && !capturedPhoto && (
                         <div className="flex flex-col items-center">
                             <Camera size={32} className="text-white/25" />
-                            <p className="mt-3 text-sm text-white/40">Camera is off</p>
+                            <p className="mt-3 text-sm text-white/40">
+                                Camera is off
+                            </p>
                         </div>
                     )}
                 </div>
@@ -265,7 +275,9 @@ export default function CreatePage() {
                             <div className="flex gap-2">
                                 <input
                                     value={musicSearch}
-                                    onChange={(event) => setMusicSearch(event.target.value)}
+                                    onChange={(event) =>
+                                        setMusicSearch(event.target.value)
+                                    }
                                     onKeyDown={(event) => {
                                         if (event.key === "Enter") {
                                             event.preventDefault();
@@ -333,7 +345,9 @@ export default function CreatePage() {
                                     )}
 
                                     <div className="min-w-0">
-                                        <p className="truncate font-semibold">{selectedSong.title}</p>
+                                        <p className="truncate font-semibold">
+                                            {selectedSong.title}
+                                        </p>
                                         <p className="truncate text-xs text-white/50">
                                             {selectedSong.artist}
                                         </p>
@@ -383,7 +397,9 @@ export default function CreatePage() {
                         </button>
 
                         <p className="mt-4 text-xs text-white/40">
-                            {cameraOn ? "Camera on" : "Tap the camera icon to turn it on"}
+                            {cameraOn
+                                ? "Camera on"
+                                : "Tap the camera icon to turn it on"}
                         </p>
                     </>
                 )}

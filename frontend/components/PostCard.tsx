@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
     Heart,
@@ -30,8 +30,21 @@ export function PostCard({
     const [showComments, setShowComments] = useState(false);
     const [showOptions, setShowOptions] = useState(false);
     const [musicPlaying, setMusicPlaying] = useState(false);
+    const [savedUsername, setSavedUsername] = useState<string | null>(null);
+    const [profileImage, setProfileImage] = useState<string | null>(null);
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    useEffect(() => {
+        setSavedUsername(localStorage.getItem("username"));
+        setProfileImage(localStorage.getItem("profileImage"));
+    }, []);
+
+    const isOwnPost = savedUsername === post.username;
+
+    const profileHref = isOwnPost
+        ? "/profile"
+        : `/u/${encodeURIComponent(post.username)}`;
 
     function toggleLike() {
         setLikeCount((count) => (liked ? count - 1 : count + 1));
@@ -58,12 +71,23 @@ export function PostCard({
     return (
         <article className="border-b border-neutral-100 pb-4">
             <div className="relative flex items-center justify-between px-4 py-3">
-                <Link href={`/u/${post.username}`} className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-100">
-                        <User size={16} className="text-neutral-400" />
+                <Link href={profileHref} className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
+                        {isOwnPost && profileImage ? (
+                            <img
+                                src={profileImage}
+                                alt="Profile"
+                                className="h-full w-full object-cover"
+                            />
+                        ) : (
+                            <User size={16} className="text-neutral-400" />
+                        )}
                     </div>
+
                     <div>
-                        <p className="text-sm font-medium text-neutral-900">{post.username}</p>
+                        <p className="text-sm font-medium text-neutral-900">
+                            {post.username}
+                        </p>
                         <p className="text-xs text-neutral-400">{post.timeAgo}</p>
                     </div>
                 </Link>
@@ -159,7 +183,11 @@ export function PostCard({
                     <button onClick={toggleLike} className="flex items-center gap-1.5">
                         <Heart
                             size={18}
-                            className={liked ? "fill-red-500 text-red-500" : "text-neutral-500"}
+                            className={
+                                liked
+                                    ? "fill-red-500 text-red-500"
+                                    : "text-neutral-500"
+                            }
                         />
                         <span className="text-sm text-neutral-500">{likeCount}</span>
                     </button>
@@ -169,7 +197,9 @@ export function PostCard({
                         className="flex items-center gap-1.5"
                     >
                         <MessageCircle size={18} className="text-neutral-500" />
-                        <span className="text-sm text-neutral-500">{post.comments}</span>
+                        <span className="text-sm text-neutral-500">
+                            {post.comments}
+                        </span>
                     </button>
                 </div>
             </div>

@@ -5,6 +5,8 @@ import { ProfileView } from "@/components/ProfileView";
 import { getLocalPosts, type LocalPost } from "@/lib/localPosts";
 import { getCollections, type Collection } from "@/lib/collections";
 
+const LOCAL_POSTS_KEY = "fashion-app-local-posts";
+
 export default function ProfilePage() {
     const [username, setUsername] = useState("Username");
     const [bio, setBio] = useState("Your bio will show up here");
@@ -13,15 +15,24 @@ export default function ProfilePage() {
     const [collections, setCollections] = useState<Collection[]>([]);
 
     useEffect(() => {
-        const savedUsername = localStorage.getItem("username");
+        const savedUsername = localStorage.getItem("username") || "Username";
         const savedBio = localStorage.getItem("bio");
         const savedProfileImage = localStorage.getItem("profileImage");
 
-        if (savedUsername) setUsername(savedUsername);
+        setUsername(savedUsername);
+
         if (savedBio) setBio(savedBio);
         if (savedProfileImage) setProfileImage(savedProfileImage);
 
-        setPosts(getLocalPosts());
+        const currentPosts = getLocalPosts();
+
+        const fixedPosts = currentPosts.map((post) =>
+            post.username === "you" ? { ...post, username: savedUsername } : post
+        );
+
+        localStorage.setItem(LOCAL_POSTS_KEY, JSON.stringify(fixedPosts));
+
+        setPosts(fixedPosts);
         setCollections(getCollections());
     }, []);
 
