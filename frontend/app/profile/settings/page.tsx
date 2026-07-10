@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { User, Shield, Moon, Info, LogOut, Globe, HelpCircle } from "lucide-react";
 import { BackHeader } from "@/components/BackHeader";
 import { SettingsRow } from "@/components/SettingsRow";
+import { logOut } from "@/lib/auth";
 
 export default function SettingsPage() {
     const router = useRouter();
@@ -23,16 +24,17 @@ export default function SettingsPage() {
 
     // ...rest of the component stays the same
 
-    function handleLogOut() {
-        const confirmed = window.confirm(
-            "This clears your locally saved profile (username, bio, photo). Continue?"
-        );
+    async function handleLogOut() {
+        const confirmed = window.confirm("Log out?");
         if (!confirmed) return;
 
-        localStorage.removeItem("username");
-        localStorage.removeItem("bio");
-        localStorage.removeItem("profileImage");
-        router.push("/profile");
+        const { error } = await logOut();
+        if (error) {
+            alert(`Logout failed: ${error}`);
+            return;
+        }
+
+        router.push("/login");
     }
 
     return (

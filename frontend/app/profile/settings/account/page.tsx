@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { BackHeader } from "@/components/BackHeader";
+import { logOut } from "@/lib/auth";
 
 const FAKE_EMAIL = "scorpion@example.com";
 const FAKE_PHONE = "+67 (676) 676-6767";
@@ -13,11 +14,16 @@ function notReady() {
 export default function AccountSettingsPage() {
     const router = useRouter();
 
-    function handleLogout() {
+    async function handleLogout() {
         const confirmed = window.confirm("Log out?");
         if (!confirmed) return;
 
-        localStorage.removeItem("username");
+        const { error } = await logOut();
+        if (error) {
+            alert(`Logout failed: ${error}`);
+            return;
+        }
+
         router.push("/login");
     }
 
