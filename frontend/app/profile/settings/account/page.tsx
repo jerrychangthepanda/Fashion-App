@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { BackHeader } from "@/components/BackHeader";
 
 const FAKE_EMAIL = "scorpion@example.com";
@@ -10,6 +11,16 @@ function notReady() {
 }
 
 export default function AccountSettingsPage() {
+    const router = useRouter();
+
+    function handleLogout() {
+        const confirmed = window.confirm("Log out?");
+        if (!confirmed) return;
+
+        localStorage.removeItem("username");
+        router.push("/login");
+    }
+
     function handleDeactivate() {
         const confirmed = window.confirm(
             "Deactivate your account? This will be a real, working action once accounts exist."
@@ -53,6 +64,13 @@ export default function AccountSettingsPage() {
             </div>
 
             <div className="mt-8 space-y-3">
+                <button
+                    onClick={handleLogout}
+                    className="w-full rounded-2xl bg-neutral-50 px-4 py-3 text-center text-sm font-medium text-neutral-700"
+                >
+                    Log out
+                </button>
+
                 <button
                     onClick={handleDeactivate}
                     className="w-full rounded-2xl bg-neutral-50 px-4 py-3 text-center text-sm font-medium text-neutral-700"

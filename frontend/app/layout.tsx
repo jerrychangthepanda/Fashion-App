@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 import { BottomNav } from "@/components/BottomNav";
+import { AuthGate } from "@/components/AuthGate";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,7 +36,7 @@ export default function RootLayout({
           style={{ transform: "translateZ(0)" }}
         >
           <div className="h-full overflow-y-auto">
-            {children}
+            <AuthGate>{children}</AuthGate>
           </div>
           <BottomNav />
         </div>

@@ -141,7 +141,10 @@ export default function CreatePage() {
     function postPhoto() {
         if (!capturedPhoto) return;
 
-        const savedUsername = localStorage.getItem("username") || "you";
+        // "you" is a stable marker for "posted by this browser's account" —
+        // display components resolve it to the real saved username live, so
+        // this never goes stale even if you rename yourself later.
+        const username = "you";
 
         const tags = tagsText
             .split(",")
@@ -150,7 +153,7 @@ export default function CreatePage() {
 
         const success = saveLocalPost({
             id: crypto.randomUUID(),
-            username: savedUsername,
+            username,
             timeAgo: "now",
             caption: caption.trim() || "new fit",
             tags,

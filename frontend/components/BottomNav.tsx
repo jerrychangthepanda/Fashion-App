@@ -12,7 +12,7 @@ const TABS = [
 export function BottomNav() {
   const pathname = usePathname();
 
-    if (pathname.startsWith("/create")) {
+    if (pathname.startsWith("/create") || pathname.startsWith("/login")) {
       return null;
     }
   return (

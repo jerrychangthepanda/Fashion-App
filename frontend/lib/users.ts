@@ -47,7 +47,35 @@ export const MOCK_FOLLOWERS: MockUser[] = [
 ].map(findUser);
 
 export function getUsersByUsernames(usernames: string[]): MockUser[] {
+    const allUsers = getAllUsers();
+
     return usernames
-        .map((username) => MOCK_USERS.find((user) => user.username === username))
+        .map((username) => allUsers.find((user) => user.username === username))
         .filter((user): user is MockUser => Boolean(user));
+}
+
+export function getCurrentUser(): MockUser {
+    if (typeof window === "undefined") {
+        return {
+            username: "Username",
+            name: "Username",
+            bio: "Your bio will show up here",
+            avatarImage: null,
+        };
+    }
+
+    const username = localStorage.getItem("username") || "Username";
+    const bio = localStorage.getItem("bio") || "Your bio will show up here";
+    const avatarImage = localStorage.getItem("profileImage");
+
+    return { username, name: username, bio, avatarImage };
+}
+
+export function getAllUsers(): MockUser[] {
+    return [getCurrentUser(), ...MOCK_USERS];
+}
+
+export function hasCurrentUser(): boolean {
+    if (typeof window === "undefined") return false;
+    return Boolean(localStorage.getItem("username"));
 }

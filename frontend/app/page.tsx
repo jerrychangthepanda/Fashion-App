@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Bell, Music, Search, Tag, User, X } from "lucide-react";
 import { MOCK_POSTS } from "@/lib/mockData";
-import { MOCK_USERS } from "@/lib/users";
+import { getAllUsers } from "@/lib/users";
 import { FeedList } from "@/components/FeedList";
 import { getLocalPosts, type LocalPost } from "@/lib/localPosts";
 
@@ -51,7 +51,7 @@ export default function FeedPage() {
             };
         }
 
-        const matchingProfiles = MOCK_USERS.filter(
+        const matchingProfiles = getAllUsers().filter(
             (user) =>
                 user.username.toLowerCase().includes(query) ||
                 user.name.toLowerCase().includes(query)

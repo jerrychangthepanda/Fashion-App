@@ -40,7 +40,8 @@ export function PostCard({
         setProfileImage(localStorage.getItem("profileImage"));
     }, []);
 
-    const isOwnPost = savedUsername === post.username;
+    const isOwnPost = post.username === "you";
+    const displayUsername = isOwnPost ? savedUsername || "Username" : post.username;
 
     const profileHref = isOwnPost
         ? "/profile"
@@ -86,7 +87,7 @@ export function PostCard({
 
                     <div>
                         <p className="text-sm font-medium text-neutral-900">
-                            {post.username}
+                            {displayUsername}
                         </p>
                         <p className="text-xs text-neutral-400">{post.timeAgo}</p>
                     </div>

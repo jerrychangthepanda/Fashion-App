@@ -42,6 +42,7 @@ export default function ProfilePostPage() {
     const [showComments, setShowComments] = useState(false);
     const [showOptions, setShowOptions] = useState(false);
     const [musicPlaying, setMusicPlaying] = useState(false);
+    const [savedUsername, setSavedUsername] = useState<string | null>(null);
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -57,6 +58,10 @@ export default function ProfilePostPage() {
         setPost(foundPost);
         setLikeCount(foundPost.likes);
     }, [postId]);
+
+    useEffect(() => {
+        setSavedUsername(localStorage.getItem("username"));
+    }, []);
 
     function toggleLike() {
         setLikeCount((count) => (liked ? count - 1 : count + 1));
@@ -201,7 +206,7 @@ export default function ProfilePostPage() {
 
                         <div>
                             <p className="text-sm font-medium text-neutral-900">
-                                {post.username}
+                                {savedUsername || "Username"}
                             </p>
                             <p className="text-xs text-neutral-400">
                                 {post.timeAgo}
