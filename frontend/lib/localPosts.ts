@@ -12,6 +12,7 @@ export type MusicTrack = {
 export type LocalPost = Post & {
     imageUrl?: string;
     music?: MusicTrack;
+    userId: string;
 };
 
 export type CreatePostInput = {
@@ -24,12 +25,12 @@ export type CreatePostInput = {
 type PostRow = {
     id: string;
     user_id: string;
-    username: string;
     caption: string;
     tags: string[] | null;
     image_url: string;
     music: MusicTrack | null;
     created_at: string;
+    profiles: { username: string } | null;
 };
 
 const POST_IMAGES_BUCKET = "post-images";
@@ -82,7 +83,8 @@ function rowToPost(row: PostRow): LocalPost {
 
     return {
         id: row.id,
-        username: row.username,
+        userId: row.user_id,
+        username: row.profiles?.username ?? "user",
         timeAgo: getTimeAgo(row.created_at),
         caption: row.caption,
         tags: row.tags ?? [],
@@ -106,7 +108,7 @@ async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
 export async function getPosts(): Promise<LocalPost[]> {
     const { data, error } = await supabase
         .from("posts")
-        .select("*")
+        .select("*, profiles(username)")
         .order("created_at", { ascending: false });
 
     if (error) {
@@ -122,7 +124,7 @@ export async function getPostsByUser(
 ): Promise<LocalPost[]> {
     const { data, error } = await supabase
         .from("posts")
-        .select("*")
+        .select("*, profiles(username)")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
@@ -157,7 +159,7 @@ export async function getPostById(
 ): Promise<LocalPost | null> {
     const { data, error } = await supabase
         .from("posts")
-        .select("*")
+        .select("*, profiles(username)")
         .eq("id", postId)
         .maybeSingle();
 
@@ -212,29 +214,16 @@ export async function createPost(
         throw uploadError;
     }
 
-    const savedUsername =
-        typeof window !== "undefined"
-            ? localStorage.getItem("username")?.trim()
-            : "";
-
-    const username =
-        savedUsername ||
-        user.user_metadata?.username ||
-        user.user_metadata?.display_name ||
-        user.email?.split("@")[0] ||
-        "user";
-
     const { data, error: insertError } = await supabase
         .from("posts")
         .insert({
             user_id: user.id,
-            username,
             caption: input.caption.trim() || "new fit",
             tags: input.tags,
             image_url: imagePath,
             music: input.music ?? null,
         })
-        .select()
+        .select("*, profiles(username)")
         .single();
 
     if (insertError) {

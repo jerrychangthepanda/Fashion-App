@@ -13,6 +13,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     const syncedUserId = useRef<string | null>(null);
 
     async function syncProfile(userId: string) {
+        localStorage.setItem("userId", userId);
+
         const { data: profile } = await supabase
             .from("profiles")
             .select("username")

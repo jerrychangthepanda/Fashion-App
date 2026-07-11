@@ -30,18 +30,18 @@ export function PostCard({
     const [showComments, setShowComments] = useState(false);
     const [showOptions, setShowOptions] = useState(false);
     const [musicPlaying, setMusicPlaying] = useState(false);
-    const [savedUsername, setSavedUsername] = useState<string | null>(null);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [profileImage, setProfileImage] = useState<string | null>(null);
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
-        setSavedUsername(localStorage.getItem("username"));
+        setCurrentUserId(localStorage.getItem("userId"));
         setProfileImage(localStorage.getItem("profileImage"));
     }, []);
 
-    const isOwnPost = post.username === "you";
-    const displayUsername = isOwnPost ? savedUsername || "Username" : post.username;
+    const isOwnPost = post.userId === currentUserId;
+    const displayUsername = post.username;
 
     const profileHref = isOwnPost
         ? "/profile"
@@ -101,6 +101,7 @@ export function PostCard({
                     open={showOptions}
                     onClose={() => setShowOptions(false)}
                     post={post}
+                    isOwnPost={isOwnPost}
                     onHide={onHide}
                     onDelete={onDelete}
                 />

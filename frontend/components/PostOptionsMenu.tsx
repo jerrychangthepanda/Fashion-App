@@ -7,18 +7,18 @@ export function PostOptionsMenu({
     open,
     onClose,
     post,
+    isOwnPost,
     onHide,
     onDelete,
 }: {
     open: boolean;
     onClose: () => void;
     post: LocalPost;
+    isOwnPost: boolean;
     onHide: () => void;
     onDelete?: () => void;
 }) {
     if (!open) return null;
-
-    const isOwnPost = post.username === "you";
 
     async function handleCopyLink() {
         const fakeUrl = `https://app-placeholder.com/post/${post.id}`;
@@ -72,7 +72,7 @@ export function PostOptionsMenu({
                             onClick={onClose}
                             className="flex w-full items-center gap-2 border-b border-neutral-100 px-3 py-2.5 text-left"
                         >
-                            <Bookmark size={16} className="text-neutral-600" />
+                           <Bookmark size={16} className="text-neutral-600" />
                             <span className="text-sm text-neutral-900">Add to Collection</span>
                         </Link>
 

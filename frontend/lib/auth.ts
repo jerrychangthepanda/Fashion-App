@@ -7,5 +7,6 @@ export async function logOut(): Promise<{ error: string | null }> {
     localStorage.removeItem("username");
     localStorage.removeItem("bio");
     localStorage.removeItem("profileImage");
+    localStorage.removeItem("userId");
     return { error: null };
 }
