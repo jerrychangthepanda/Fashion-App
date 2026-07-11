@@ -115,6 +115,13 @@ export async function getMyProfile(): Promise<Profile | null> {
     };
 }
 
+function extractStoragePath(publicUrl: string): string | null {
+    const marker = "/object/public/profile_picture/";
+    const index = publicUrl.indexOf(marker);
+    if (index === -1) return null;
+    return publicUrl.slice(index + marker.length).split("?")[0];
+}
+
 export async function updateMyProfile(updates: {
     username: string;
     bio: string;
@@ -129,16 +136,29 @@ export async function updateMyProfile(updates: {
     }
 
     let profilePictureUrl: string | undefined;
+    let oldProfilePicturePath: string | null = null;
 
     if (updates.profilePictureFile) {
+        const { data: currentProfile } = await supabase
+            .from("profiles")
+            .select("profile_picture_url")
+            .eq("id", user.id)
+            .single();
+
+        if (currentProfile?.profile_picture_url) {
+            oldProfilePicturePath = extractStoragePath(currentProfile.profile_picture_url);
+        }
+
         const extension = updates.profilePictureFile.type === "image/png" ? "png" : "jpg";
-        const profilePicturePath = `${user.id}/profile-picture.${extension}`;
+        // Unique filename every time, same pattern post-images already uses.
+        // No fixed path to overwrite means no upsert/RLS conflict is possible.
+        const profilePicturePath = `${user.id}/${crypto.randomUUID()}.${extension}`;
 
         const { error: uploadError } = await supabase.storage
             .from("profile_picture")
             .upload(profilePicturePath, updates.profilePictureFile, {
                 contentType: updates.profilePictureFile.type || "image/jpeg",
-                upsert: true,
+                upsert: false,
             });
 
         if (uploadError) {
@@ -150,8 +170,7 @@ export async function updateMyProfile(updates: {
             data: { publicUrl },
         } = supabase.storage.from("profile_picture").getPublicUrl(profilePicturePath);
 
-        // Cache-bust: the path is reused every time, so force a fresh fetch.
-        profilePictureUrl = `${publicUrl}?updated=${Date.now()}`;
+        profilePictureUrl = publicUrl;
     }
 
     const { data, error } = await supabase
@@ -171,6 +190,18 @@ export async function updateMyProfile(updates: {
         }
         console.error("Failed to update profile:", error);
         throw error;
+    }
+
+    // Best-effort cleanup of the old picture. If this fails, it's just an
+    // orphaned file left in storage — not a reason to fail the save.
+    if (oldProfilePicturePath) {
+        const { error: cleanupError } = await supabase.rpc("delete_own_profile_picture", {
+            object_path: oldProfilePicturePath,
+        });
+
+        if (cleanupError) {
+            console.error("Failed to clean up old profile picture:", cleanupError);
+        }
     }
 
     localStorage.setItem("username", data.username);
