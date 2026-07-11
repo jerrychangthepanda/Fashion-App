@@ -6,7 +6,7 @@ import { Bell, Music, Search, Tag, User, X } from "lucide-react";
 import { MOCK_POSTS } from "@/lib/mockData";
 import { getAllUsers } from "@/lib/users";
 import { FeedList } from "@/components/FeedList";
-import { getLocalPosts, type LocalPost } from "@/lib/localPosts";
+import { getPosts, type LocalPost } from "@/lib/localPosts";
 
 type SearchSelection =
     | {
@@ -27,18 +27,40 @@ type SearchSelection =
     | null;
 
 export default function FeedPage() {
-    const [localPosts, setLocalPosts] = useState<LocalPost[]>([]);
+    const [supabasePosts, setSupabasePosts] = useState<LocalPost[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
-    const [selectedSearch, setSelectedSearch] = useState<SearchSelection>(null);
+    const [selectedSearch, setSelectedSearch] =
+        useState<SearchSelection>(null);
 
     // Change this to true if you want to test the red notification dot.
     const [hasNewNotification] = useState(false);
 
     useEffect(() => {
-        setLocalPosts(getLocalPosts());
+        let cancelled = false;
+
+        async function loadPosts() {
+            try {
+                const loadedPosts = await getPosts();
+
+                if (!cancelled) {
+                    setSupabasePosts(loadedPosts);
+                }
+            } catch (error) {
+                console.error("Could not load posts:", error);
+            }
+        }
+
+        void loadPosts();
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
-    const posts: LocalPost[] = [...localPosts, ...MOCK_POSTS];
+    const posts = useMemo<LocalPost[]>(
+        () => [...supabasePosts, ...MOCK_POSTS],
+        [supabasePosts]
+    );
 
     const searchResults = useMemo(() => {
         const query = searchQuery.toLowerCase().trim();
@@ -51,11 +73,13 @@ export default function FeedPage() {
             };
         }
 
-        const matchingProfiles = getAllUsers().filter(
-            (user) =>
-                user.username.toLowerCase().includes(query) ||
-                user.name.toLowerCase().includes(query)
-        ).map((user) => user.username);
+        const matchingProfiles = getAllUsers()
+            .filter(
+                (user) =>
+                    user.username.toLowerCase().includes(query) ||
+                    user.name.toLowerCase().includes(query)
+            )
+            .map((user) => user.username);
 
         const brandMap = new Map<string, string>();
         const musicMap = new Map<string, string>();
@@ -87,27 +111,38 @@ export default function FeedPage() {
     }, [posts, searchQuery]);
 
     const selectedPosts = useMemo(() => {
-        if (!selectedSearch) return posts;
+        if (!selectedSearch) {
+            return posts;
+        }
 
         if (selectedSearch.type === "profile") {
-            return posts.filter((post) => post.username === selectedSearch.value);
+            return posts.filter(
+                (post) => post.username === selectedSearch.value
+            );
         }
 
         if (selectedSearch.type === "brand") {
             return posts.filter((post) =>
                 post.tags.some(
-                    (tag) => tag.toLowerCase() === selectedSearch.value.toLowerCase()
+                    (tag) =>
+                        tag.toLowerCase() ===
+                        selectedSearch.value.toLowerCase()
                 )
             );
         }
 
         if (selectedSearch.type === "music") {
             return posts.filter((post) => {
-                if (!post.music) return false;
+                if (!post.music) {
+                    return false;
+                }
 
                 const songLabel = `${post.music.title} - ${post.music.artist}`;
 
-                return songLabel.toLowerCase() === selectedSearch.value.toLowerCase();
+                return (
+                    songLabel.toLowerCase() ===
+                    selectedSearch.value.toLowerCase()
+                );
             });
         }
 
@@ -127,7 +162,9 @@ export default function FeedPage() {
     return (
         <main className="min-h-screen bg-white pb-[var(--bottom-nav-height)]">
             <div className="flex items-center justify-between border-b border-neutral-100 px-5 py-4">
-                <h1 className="text-lg font-semibold text-neutral-900">Feed</h1>
+                <h1 className="text-lg font-semibold text-neutral-900">
+                    Feed
+                </h1>
 
                 <Link
                     href="/notifications"
@@ -148,8 +185,8 @@ export default function FeedPage() {
 
                     <input
                         value={searchQuery}
-                        onChange={(e) => {
-                            setSearchQuery(e.target.value);
+                        onChange={(event) => {
+                            setSearchQuery(event.target.value);
                             setSelectedSearch(null);
                         }}
                         placeholder="Search profiles, brands, or music"
@@ -157,7 +194,10 @@ export default function FeedPage() {
                     />
 
                     {(searchQuery || selectedSearch) && (
-                        <button onClick={clearSearch} aria-label="Clear search">
+                        <button
+                            onClick={clearSearch}
+                            aria-label="Clear search"
+                        >
                             <X size={17} className="text-neutral-400" />
                         </button>
                     )}
@@ -170,6 +210,7 @@ export default function FeedPage() {
                         <p className="text-xs text-neutral-400">
                             Showing {selectedSearch.type}
                         </p>
+
                         <p className="text-sm font-medium text-neutral-900">
                             {selectedSearch.label}
                         </p>
@@ -195,26 +236,32 @@ export default function FeedPage() {
                                     </p>
 
                                     <div className="space-y-1">
-                                        {searchResults.profiles.map((username) => (
-                                            <Link
-                                                key={username}
-                                                href={`/u/${username}`}
-                                                className="flex items-center gap-3 rounded-2xl px-2 py-2 hover:bg-neutral-50"
-                                            >
-                                                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100">
-                                                    <User size={17} className="text-neutral-500" />
-                                                </div>
+                                        {searchResults.profiles.map(
+                                            (username) => (
+                                                <Link
+                                                    key={username}
+                                                    href={`/u/${username}`}
+                                                    className="flex items-center gap-3 rounded-2xl px-2 py-2 hover:bg-neutral-50"
+                                                >
+                                                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100">
+                                                        <User
+                                                            size={17}
+                                                            className="text-neutral-500"
+                                                        />
+                                                    </div>
 
-                                                <div>
-                                                    <p className="text-sm font-medium text-neutral-900">
-                                                        {username}
-                                                    </p>
-                                                    <p className="text-xs text-neutral-400">
-                                                        View profile
-                                                    </p>
-                                                </div>
-                                            </Link>
-                                        ))}
+                                                    <div>
+                                                        <p className="text-sm font-medium text-neutral-900">
+                                                            {username}
+                                                        </p>
+
+                                                        <p className="text-xs text-neutral-400">
+                                                            View profile
+                                                        </p>
+                                                    </div>
+                                                </Link>
+                                            )
+                                        )}
                                     </div>
                                 </section>
                             )}
@@ -239,13 +286,17 @@ export default function FeedPage() {
                                                 className="flex w-full items-center gap-3 rounded-2xl px-2 py-2 text-left hover:bg-neutral-50"
                                             >
                                                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100">
-                                                    <Tag size={17} className="text-neutral-500" />
+                                                    <Tag
+                                                        size={17}
+                                                        className="text-neutral-500"
+                                                    />
                                                 </div>
 
                                                 <div>
                                                     <p className="text-sm font-medium text-neutral-900">
                                                         {brand}
                                                     </p>
+
                                                     <p className="text-xs text-neutral-400">
                                                         View matching posts
                                                     </p>
@@ -276,15 +327,20 @@ export default function FeedPage() {
                                                 className="flex w-full items-center gap-3 rounded-2xl px-2 py-2 text-left hover:bg-neutral-50"
                                             >
                                                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100">
-                                                    <Music size={17} className="text-neutral-500" />
+                                                    <Music
+                                                        size={17}
+                                                        className="text-neutral-500"
+                                                    />
                                                 </div>
 
                                                 <div>
                                                     <p className="text-sm font-medium text-neutral-900">
                                                         {song}
                                                     </p>
+
                                                     <p className="text-xs text-neutral-400">
-                                                        View posts using this song
+                                                        View posts using this
+                                                        song
                                                     </p>
                                                 </div>
                                             </button>
@@ -298,8 +354,10 @@ export default function FeedPage() {
                             <p className="text-sm font-medium text-neutral-700">
                                 No results found
                             </p>
+
                             <p className="mt-1 text-sm text-neutral-400">
-                                Try searching for a profile, brand, song, or artist.
+                                Try searching for a profile, brand, song, or
+                                artist.
                             </p>
                         </div>
                     )}

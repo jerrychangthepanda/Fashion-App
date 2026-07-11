@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { BackHeader } from "@/components/BackHeader";
 import { CollectionTile } from "@/components/CollectionTile";
-import { getLocalPosts, type LocalPost } from "@/lib/localPosts";
+import { getPosts, type LocalPost } from "@/lib/localPosts";
 import {
     getCollections,
     createCollection,
@@ -18,30 +18,77 @@ export default function AddToCollectionPage() {
     const router = useRouter();
     const postId = params.postId as string;
 
-    const [collections, setCollections] = useState<Collection[]>([]);
+    const [collections, setCollections] = useState<Collection[]>(
+        []
+    );
+
     const [posts, setPosts] = useState<LocalPost[]>([]);
 
     useEffect(() => {
+        let cancelled = false;
+
         setCollections(getCollections());
-        setPosts(getLocalPosts());
+
+        async function loadPosts() {
+            try {
+                const loadedPosts = await getPosts();
+
+                if (!cancelled) {
+                    setPosts(loadedPosts);
+                }
+            } catch (error) {
+                console.error("Could not load posts:", error);
+            }
+        }
+
+        void loadPosts();
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     function handleToggle(collectionId: string) {
-        togglePostInCollection(collectionId, postId);
+        const success = togglePostInCollection(
+            collectionId,
+            postId
+        );
+
+        if (!success) {
+            alert("Couldn't update the collection.");
+            return;
+        }
+
         setCollections(getCollections());
     }
 
     function handleCreateNew() {
         const name = window.prompt("Name this collection:");
-        if (!name || !name.trim()) return;
 
-        const newCollection = createCollection(name.trim());
-        if (!newCollection) {
-            alert("Couldn't create the collection — storage might be full.");
+        if (!name || !name.trim()) {
             return;
         }
 
-        togglePostInCollection(newCollection.id, postId);
+        const newCollection = createCollection(name.trim());
+
+        if (!newCollection) {
+            alert(
+                "Couldn't create the collection — storage might be full."
+            );
+
+            return;
+        }
+
+        const success = togglePostInCollection(
+            newCollection.id,
+            postId
+        );
+
+        if (!success) {
+            alert("Couldn't add the post to the collection.");
+            return;
+        }
+
         setCollections(getCollections());
     }
 
@@ -55,16 +102,29 @@ export default function AddToCollectionPage() {
                         key={collection.id}
                         collection={collection}
                         posts={posts}
-                        selected={collection.postIds.includes(postId)}
-                        onClick={() => handleToggle(collection.id)}
+                        selected={collection.postIds.includes(
+                            postId
+                        )}
+                        onClick={() =>
+                            handleToggle(collection.id)
+                        }
                     />
                 ))}
 
-                <button onClick={handleCreateNew} className="flex flex-col items-center gap-1.5">
+                <button
+                    onClick={handleCreateNew}
+                    className="flex flex-col items-center gap-1.5"
+                >
                     <div className="flex aspect-square w-full items-center justify-center rounded-xl border-2 border-dashed border-neutral-300">
-                        <Plus size={22} className="text-neutral-400" />
+                        <Plus
+                            size={22}
+                            className="text-neutral-400"
+                        />
                     </div>
-                    <span className="text-xs font-medium text-neutral-500">Create new</span>
+
+                    <span className="text-xs font-medium text-neutral-500">
+                        Create new
+                    </span>
                 </button>
             </div>
 

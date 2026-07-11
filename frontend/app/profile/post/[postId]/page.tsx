@@ -1,10 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import {
+    useParams,
+    useRouter,
+    useSearchParams,
+} from "next/navigation";
 import Link from "next/link";
 import {
+    Bookmark,
     ChevronLeft,
+    FolderMinus,
     Heart,
     Image as ImageIcon,
     MessageCircle,
@@ -12,15 +18,13 @@ import {
     Music,
     Pencil,
     Trash2,
-    Bookmark,
     User,
     Volume2,
     VolumeX,
-    FolderMinus,
 } from "lucide-react";
 import {
-    deleteLocalPost,
-    getLocalPosts,
+    deletePost,
+    getPostById,
     type LocalPost,
 } from "@/lib/localPosts";
 import { togglePostInCollection } from "@/lib/collections";
@@ -30,7 +34,9 @@ export default function ProfilePostPage() {
     const router = useRouter();
     const params = useParams();
     const searchParams = useSearchParams();
-    const fromCollection = searchParams.get("fromCollection");
+
+    const fromCollection =
+        searchParams.get("fromCollection");
 
     const postId = params.postId as string;
 
@@ -42,21 +48,47 @@ export default function ProfilePostPage() {
     const [showComments, setShowComments] = useState(false);
     const [showOptions, setShowOptions] = useState(false);
     const [musicPlaying, setMusicPlaying] = useState(false);
-    const [savedUsername, setSavedUsername] = useState<string | null>(null);
+    const [deleting, setDeleting] = useState(false);
+
+    const [savedUsername, setSavedUsername] =
+        useState<string | null>(null);
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
-        const posts = getLocalPosts();
-        const foundPost = posts.find((item) => item.id === postId);
+        let cancelled = false;
 
-        if (!foundPost) {
-            setPostMissing(true);
-            return;
+        async function loadPost() {
+            try {
+                setPostMissing(false);
+
+                const foundPost = await getPostById(postId);
+
+                if (cancelled) {
+                    return;
+                }
+
+                if (!foundPost) {
+                    setPostMissing(true);
+                    return;
+                }
+
+                setPost(foundPost);
+                setLikeCount(foundPost.likes);
+            } catch (error) {
+                console.error("Could not load post:", error);
+
+                if (!cancelled) {
+                    setPostMissing(true);
+                }
+            }
         }
 
-        setPost(foundPost);
-        setLikeCount(foundPost.likes);
+        void loadPost();
+
+        return () => {
+            cancelled = true;
+        };
     }, [postId]);
 
     useEffect(() => {
@@ -64,13 +96,19 @@ export default function ProfilePostPage() {
     }, []);
 
     function toggleLike() {
-        setLikeCount((count) => (liked ? count - 1 : count + 1));
-        setLiked(!liked);
+        setLikeCount((count) =>
+            liked ? Math.max(0, count - 1) : count + 1
+        );
+
+        setLiked((current) => !current);
     }
 
     async function toggleMusic() {
         const audio = audioRef.current;
-        if (!audio) return;
+
+        if (!audio) {
+            return;
+        }
 
         try {
             if (musicPlaying) {
@@ -85,17 +123,51 @@ export default function ProfilePostPage() {
         }
     }
 
-    function handleDeletePost() {
-        if (!post) return;
+    async function handleDeletePost() {
+        if (!post || deleting) {
+            return;
+        }
 
-        deleteLocalPost(post.id);
-        router.push("/profile");
+        try {
+            setDeleting(true);
+
+            await deletePost(post.id);
+
+            router.push("/profile");
+            router.refresh();
+        } catch (error) {
+            console.error("Could not delete post:", error);
+
+            alert(
+                error instanceof Error
+                    ? error.message
+                    : "Could not delete the post."
+            );
+        } finally {
+            setDeleting(false);
+        }
     }
 
     function handleRemoveFromCollection() {
-        if (!fromCollection) return;
-        togglePostInCollection(fromCollection, postId);
-        router.push(`/profile/collections/${fromCollection}`);
+        if (!fromCollection) {
+            return;
+        }
+
+        const success = togglePostInCollection(
+            fromCollection,
+            postId
+        );
+
+        if (!success) {
+            alert("Couldn't remove the post from the collection.");
+            return;
+        }
+
+        router.push(
+            `/profile/collections/${fromCollection}`
+        );
+
+        router.refresh();
     }
 
     if (postMissing) {
@@ -103,11 +175,16 @@ export default function ProfilePostPage() {
             <main className="min-h-screen bg-white pb-[var(--bottom-nav-height)]">
                 <div className="flex items-center border-b border-neutral-100 px-4 py-3">
                     <button
-                        onClick={() => router.push("/profile")}
+                        onClick={() =>
+                            router.push("/profile")
+                        }
                         aria-label="Back"
                         className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100"
                     >
-                        <ChevronLeft size={20} className="text-neutral-700" />
+                        <ChevronLeft
+                            size={20}
+                            className="text-neutral-700"
+                        />
                     </button>
 
                     <h1 className="ml-3 text-base font-semibold text-neutral-900">
@@ -116,7 +193,9 @@ export default function ProfilePostPage() {
                 </div>
 
                 <div className="flex h-60 items-center justify-center">
-                    <p className="text-sm text-neutral-400">Post not found</p>
+                    <p className="text-sm text-neutral-400">
+                        Post not found
+                    </p>
                 </div>
             </main>
         );
@@ -126,7 +205,9 @@ export default function ProfilePostPage() {
         return (
             <main className="min-h-screen bg-white pb-[var(--bottom-nav-height)]">
                 <div className="flex h-60 items-center justify-center">
-                    <p className="text-sm text-neutral-400">Loading...</p>
+                    <p className="text-sm text-neutral-400">
+                        Loading...
+                    </p>
                 </div>
             </main>
         );
@@ -137,11 +218,16 @@ export default function ProfilePostPage() {
             <div className="sticky top-0 z-20 flex items-center justify-between border-b border-neutral-100 bg-white px-4 py-3">
                 <div className="flex items-center gap-3">
                     <button
-                        onClick={() => router.push("/profile")}
+                        onClick={() =>
+                            router.push("/profile")
+                        }
                         aria-label="Back"
                         className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100"
                     >
-                        <ChevronLeft size={20} className="text-neutral-700" />
+                        <ChevronLeft
+                            size={20}
+                            className="text-neutral-700"
+                        />
                     </button>
 
                     <h1 className="text-base font-semibold text-neutral-900">
@@ -151,33 +237,51 @@ export default function ProfilePostPage() {
 
                 <div className="relative">
                     <button
-                        onClick={() => setShowOptions(!showOptions)}
+                        onClick={() =>
+                            setShowOptions(
+                                (current) => !current
+                            )
+                        }
                         aria-label="Post options"
                         className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100"
                     >
-                        <MoreHorizontal size={19} className="text-neutral-700" />
+                        <MoreHorizontal
+                            size={19}
+                            className="text-neutral-700"
+                        />
                     </button>
 
                     {showOptions && (
-                        <div className="absolute right-0 top-11 z-30 w-40 overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-black/5">
+                        <div className="absolute right-0 top-11 z-30 w-44 overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-black/5">
                             <button
-                                onClick={() => router.push(`/profile/post/${post.id}/edit`)}
+                                onClick={() =>
+                                    router.push(
+                                        `/profile/post/${post.id}/edit`
+                                    )
+                                }
                                 className="flex w-full items-center gap-2 border-b border-neutral-100 px-3 py-3 text-left text-sm font-medium text-neutral-900"
                             >
                                 <Pencil size={15} />
                                 Edit post
                             </button>
 
-                            <button 
-                                onClick={() => router.push(`/profile/post/${post.id}/collections`)}
-                                className="flex w-full items-center gap-2 border-b border-neutral-100 px-3 py-3 text-left text-sm font-medium text-neutral-900">
+                            <button
+                                onClick={() =>
+                                    router.push(
+                                        `/profile/post/${post.id}/collections`
+                                    )
+                                }
+                                className="flex w-full items-center gap-2 border-b border-neutral-100 px-3 py-3 text-left text-sm font-medium text-neutral-900"
+                            >
                                 <Bookmark size={15} />
                                 Add to Collection
                             </button>
 
                             {fromCollection && (
                                 <button
-                                    onClick={handleRemoveFromCollection}
+                                    onClick={
+                                        handleRemoveFromCollection
+                                    }
                                     className="flex w-full items-center gap-2 border-b border-neutral-100 px-3 py-3 text-left text-sm font-medium text-neutral-900"
                                 >
                                     <FolderMinus size={15} />
@@ -186,11 +290,17 @@ export default function ProfilePostPage() {
                             )}
 
                             <button
-                                onClick={handleDeletePost}
-                                className="flex w-full items-center gap-2 px-3 py-3 text-left text-sm font-medium text-red-600"
+                                onClick={() =>
+                                    void handleDeletePost()
+                                }
+                                disabled={deleting}
+                                className="flex w-full items-center gap-2 px-3 py-3 text-left text-sm font-medium text-red-600 disabled:opacity-50"
                             >
                                 <Trash2 size={15} />
-                                Delete post
+
+                                {deleting
+                                    ? "Deleting..."
+                                    : "Delete post"}
                             </button>
                         </div>
                     )}
@@ -199,15 +309,24 @@ export default function ProfilePostPage() {
 
             <article className="border-b border-neutral-100 pb-4">
                 <div className="relative flex items-center justify-between px-4 py-3">
-                    <Link href="/profile" className="flex items-center gap-2">
+                    <Link
+                        href="/profile"
+                        className="flex items-center gap-2"
+                    >
                         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-100">
-                            <User size={16} className="text-neutral-400" />
+                            <User
+                                size={16}
+                                className="text-neutral-400"
+                            />
                         </div>
 
                         <div>
                             <p className="text-sm font-medium text-neutral-900">
-                                {savedUsername || "Username"}
+                                {savedUsername ||
+                                    post.username ||
+                                    "Username"}
                             </p>
+
                             <p className="text-xs text-neutral-400">
                                 {post.timeAgo}
                             </p>
@@ -219,11 +338,17 @@ export default function ProfilePostPage() {
                     {post.imageUrl ? (
                         <img
                             src={post.imageUrl}
-                            alt={post.caption || "Fashion post"}
+                            alt={
+                                post.caption ||
+                                "Fashion post"
+                            }
                             className="h-full w-full object-cover"
                         />
                     ) : (
-                        <ImageIcon size={28} className="text-neutral-300" />
+                        <ImageIcon
+                            size={28}
+                            className="text-neutral-300"
+                        />
                     )}
                 </div>
 
@@ -233,7 +358,10 @@ export default function ProfilePostPage() {
                             <div className="flex min-w-0 items-center gap-3">
                                 {post.music.artworkUrl ? (
                                     <img
-                                        src={post.music.artworkUrl}
+                                        src={
+                                            post.music
+                                                .artworkUrl
+                                        }
                                         alt=""
                                         className="h-10 w-10 rounded-xl object-cover"
                                     />
@@ -250,6 +378,7 @@ export default function ProfilePostPage() {
                                     <p className="truncate text-sm font-medium text-neutral-900">
                                         {post.music.title}
                                     </p>
+
                                     <p className="truncate text-xs text-neutral-500">
                                         {post.music.artist}
                                     </p>
@@ -257,10 +386,14 @@ export default function ProfilePostPage() {
                             </div>
 
                             <button
-                                onClick={toggleMusic}
+                                onClick={() =>
+                                    void toggleMusic()
+                                }
                                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white"
                                 aria-label={
-                                    musicPlaying ? "Pause music" : "Play music"
+                                    musicPlaying
+                                        ? "Pause music"
+                                        : "Play music"
                                 }
                             >
                                 {musicPlaying ? (
@@ -279,13 +412,19 @@ export default function ProfilePostPage() {
                             <audio
                                 ref={audioRef}
                                 src={post.music.previewUrl}
-                                onPause={() => setMusicPlaying(false)}
-                                onEnded={() => setMusicPlaying(false)}
+                                onPause={() =>
+                                    setMusicPlaying(false)
+                                }
+                                onEnded={() =>
+                                    setMusicPlaying(false)
+                                }
                             />
                         </div>
                     )}
 
-                    <p className="text-sm text-neutral-900">{post.caption}</p>
+                    <p className="text-sm text-neutral-900">
+                        {post.caption}
+                    </p>
 
                     {post.tags.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-2">
@@ -313,19 +452,23 @@ export default function ProfilePostPage() {
                                         : "text-neutral-500"
                                 }
                             />
+
                             <span className="text-sm text-neutral-500">
                                 {likeCount}
                             </span>
                         </button>
 
                         <button
-                            onClick={() => setShowComments(true)}
+                            onClick={() =>
+                                setShowComments(true)
+                            }
                             className="flex items-center gap-1.5"
                         >
                             <MessageCircle
                                 size={18}
                                 className="text-neutral-500"
                             />
+
                             <span className="text-sm text-neutral-500">
                                 {post.comments}
                             </span>

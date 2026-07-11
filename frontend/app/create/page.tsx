@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, CameraOff, Music, X } from "lucide-react";
-import { saveLocalPost, type MusicTrack } from "@/lib/localPosts";
+import { createPost, type MusicTrack } from "@/lib/localPosts";
 
 type ITunesSong = {
     trackName?: string;
@@ -24,6 +24,7 @@ export default function CreatePage() {
     const [cameraError, setCameraError] = useState("");
     const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
     const [editingPost, setEditingPost] = useState(false);
+    const [posting, setPosting] = useState(false);
 
     const [caption, setCaption] = useState("");
     const [tagsText, setTagsText] = useState("");
@@ -66,19 +67,21 @@ export default function CreatePage() {
         if (cameraOn) {
             turnCameraOff();
         } else {
-            turnCameraOn();
+            void turnCameraOn();
         }
     }
 
     function takePicture() {
         const video = videoRef.current;
         const canvas = canvasRef.current;
+
         if (!video || !canvas) return;
 
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
 
         const context = canvas.getContext("2d");
+
         if (!context) return;
 
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -104,6 +107,7 @@ export default function CreatePage() {
 
     async function searchSongs() {
         const query = musicSearch.trim();
+
         if (!query) return;
 
         try {
@@ -115,12 +119,18 @@ export default function CreatePage() {
                 )}&media=music&entity=song&limit=8`
             );
 
+            if (!response.ok) {
+                throw new Error("Music search failed.");
+            }
+
             const data = await response.json();
 
             const songs: MusicTrack[] = data.results
                 .filter(
                     (song: ITunesSong) =>
-                        song.trackName && song.artistName && song.previewUrl
+                        song.trackName &&
+                        song.artistName &&
+                        song.previewUrl
                 )
                 .map((song: ITunesSong) => ({
                     title: song.trackName as string,
@@ -138,50 +148,54 @@ export default function CreatePage() {
         }
     }
 
-    function postPhoto() {
-        if (!capturedPhoto) return;
-
-        // "you" is a stable marker for "posted by this browser's account" —
-        // display components resolve it to the real saved username live, so
-        // this never goes stale even if you rename yourself later.
-        const username = "you";
+    async function postPhoto() {
+        if (!capturedPhoto || posting) return;
 
         const tags = tagsText
             .split(",")
             .map((tag) => tag.trim())
             .filter(Boolean);
 
-        const success = saveLocalPost({
-            id: crypto.randomUUID(),
-            username,
-            timeAgo: "now",
-            caption: caption.trim() || "new fit",
-            tags,
-            likes: 0,
-            comments: 0,
-            imageUrl: capturedPhoto,
-            music: selectedSong ?? undefined,
-        });
+        try {
+            setPosting(true);
 
-        if (success) {
+            await createPost({
+                imageDataUrl: capturedPhoto,
+                caption,
+                tags,
+                music: selectedSong ?? undefined,
+            });
+
             router.push("/");
-        } else {
-            alert(
-                "Couldn't save your post - storage might be full. Try a smaller photo or clear some old posts."
-            );
+            router.refresh();
+        } catch (error) {
+            console.error(error);
+
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : "Something went wrong while posting.";
+
+            alert(message);
+        } finally {
+            setPosting(false);
         }
     }
 
     useEffect(() => {
         if (cameraOn && videoRef.current && streamRef.current) {
             videoRef.current.srcObject = streamRef.current;
-            videoRef.current.play();
+            void videoRef.current.play();
         }
     }, [cameraOn]);
 
     useEffect(() => {
         return () => {
-            turnCameraOff();
+            if (streamRef.current) {
+                streamRef.current
+                    .getTracks()
+                    .forEach((track) => track.stop());
+            }
         };
     }, []);
 
@@ -204,13 +218,20 @@ export default function CreatePage() {
                 {!capturedPhoto && (
                     <button
                         onClick={toggleCamera}
-                        aria-label={cameraOn ? "Turn camera off" : "Turn camera on"}
+                        aria-label={
+                            cameraOn
+                                ? "Turn camera off"
+                                : "Turn camera on"
+                        }
                         className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10"
                     >
                         {cameraOn ? (
                             <Camera size={18} className="text-white" />
                         ) : (
-                            <CameraOff size={18} className="text-white" />
+                            <CameraOff
+                                size={18}
+                                className="text-white"
+                            />
                         )}
                     </button>
                 )}
@@ -237,7 +258,10 @@ export default function CreatePage() {
 
                     {!cameraOn && !capturedPhoto && (
                         <div className="flex flex-col items-center">
-                            <Camera size={32} className="text-white/25" />
+                            <Camera
+                                size={32}
+                                className="text-white/25"
+                            />
                             <p className="mt-3 text-sm text-white/40">
                                 Camera is off
                             </p>
@@ -257,14 +281,18 @@ export default function CreatePage() {
                     <div className="mt-5 w-full max-w-[440px] space-y-4 pb-8">
                         <textarea
                             value={caption}
-                            onChange={(event) => setCaption(event.target.value)}
+                            onChange={(event) =>
+                                setCaption(event.target.value)
+                            }
                             placeholder="Write a caption..."
                             className="min-h-24 w-full resize-none rounded-2xl bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40"
                         />
 
                         <input
                             value={tagsText}
-                            onChange={(event) => setTagsText(event.target.value)}
+                            onChange={(event) =>
+                                setTagsText(event.target.value)
+                            }
                             placeholder="Add tags separated by commas, like Ralph Lauren, COS, Clarks"
                             className="w-full rounded-2xl bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40"
                         />
@@ -279,12 +307,14 @@ export default function CreatePage() {
                                 <input
                                     value={musicSearch}
                                     onChange={(event) =>
-                                        setMusicSearch(event.target.value)
+                                        setMusicSearch(
+                                            event.target.value
+                                        )
                                     }
                                     onKeyDown={(event) => {
                                         if (event.key === "Enter") {
                                             event.preventDefault();
-                                            searchSongs();
+                                            void searchSongs();
                                         }
                                     }}
                                     placeholder="Search a real song..."
@@ -292,11 +322,16 @@ export default function CreatePage() {
                                 />
 
                                 <button
-                                    onClick={searchSongs}
-                                    disabled={searchingMusic || !musicSearch.trim()}
+                                    onClick={() => void searchSongs()}
+                                    disabled={
+                                        searchingMusic ||
+                                        !musicSearch.trim()
+                                    }
                                     className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-neutral-900 disabled:opacity-50"
                                 >
-                                    {searchingMusic ? "..." : "Search"}
+                                    {searchingMusic
+                                        ? "..."
+                                        : "Search"}
                                 </button>
                             </div>
 
@@ -305,13 +340,17 @@ export default function CreatePage() {
                                     {songResults.map((song) => (
                                         <button
                                             key={`${song.title}-${song.artist}-${song.previewUrl}`}
-                                            onClick={() => setSelectedSong(song)}
+                                            onClick={() =>
+                                                setSelectedSong(song)
+                                            }
                                             className="flex w-full items-center justify-between gap-3 rounded-xl bg-white/10 px-3 py-2 text-left"
                                         >
                                             <div className="flex min-w-0 items-center gap-3">
                                                 {song.artworkUrl && (
                                                     <img
-                                                        src={song.artworkUrl}
+                                                        src={
+                                                            song.artworkUrl
+                                                        }
                                                         alt=""
                                                         className="h-10 w-10 rounded-lg object-cover"
                                                     />
@@ -321,6 +360,7 @@ export default function CreatePage() {
                                                     <span className="block truncate text-sm font-medium text-white">
                                                         {song.title}
                                                     </span>
+
                                                     <span className="block truncate text-xs text-white/50">
                                                         {song.artist}
                                                     </span>
@@ -328,7 +368,8 @@ export default function CreatePage() {
                                             </div>
 
                                             <span className="shrink-0 text-xs text-white/60">
-                                                {selectedSong?.previewUrl === song.previewUrl
+                                                {selectedSong?.previewUrl ===
+                                                    song.previewUrl
                                                     ? "Selected"
                                                     : "Add"}
                                             </span>
@@ -341,7 +382,9 @@ export default function CreatePage() {
                                 <div className="mt-3 flex items-center gap-3 rounded-xl bg-black/30 p-3 text-sm text-white">
                                     {selectedSong.artworkUrl && (
                                         <img
-                                            src={selectedSong.artworkUrl}
+                                            src={
+                                                selectedSong.artworkUrl
+                                            }
                                             alt=""
                                             className="h-10 w-10 rounded-lg object-cover"
                                         />
@@ -351,6 +394,7 @@ export default function CreatePage() {
                                         <p className="truncate font-semibold">
                                             {selectedSong.title}
                                         </p>
+
                                         <p className="truncate text-xs text-white/50">
                                             {selectedSong.artist}
                                         </p>
@@ -367,17 +411,21 @@ export default function CreatePage() {
                     <div className="flex items-center gap-6">
                         <button
                             onClick={retakePhoto}
-                            className="rounded-full bg-white/10 px-5 py-3 text-sm font-medium text-white"
+                            disabled={posting}
+                            className="rounded-full bg-white/10 px-5 py-3 text-sm font-medium text-white disabled:opacity-50"
                         >
                             Retake
                         </button>
 
                         {editingPost ? (
                             <button
-                                onClick={postPhoto}
-                                className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-neutral-900"
+                                onClick={() => void postPhoto()}
+                                disabled={posting}
+                                className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-neutral-900 disabled:opacity-50"
                             >
-                                Post
+                                {posting
+                                    ? "Posting..."
+                                    : "Post"}
                             </button>
                         ) : (
                             <button

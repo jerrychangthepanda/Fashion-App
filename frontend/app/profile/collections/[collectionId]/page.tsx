@@ -3,8 +3,16 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Image as ImageIcon, MoreHorizontal, Music, Pencil, Plus, Trash2 } from "lucide-react";
-import { getLocalPosts, type LocalPost } from "@/lib/localPosts";
+import {
+    ChevronLeft,
+    Image as ImageIcon,
+    MoreHorizontal,
+    Music,
+    Pencil,
+    Plus,
+    Trash2,
+} from "lucide-react";
+import { getPosts, type LocalPost } from "@/lib/localPosts";
 import {
     getCollections,
     renameCollection,
@@ -17,39 +25,122 @@ export default function CollectionDetailPage() {
     const params = useParams();
     const collectionId = params.collectionId as string;
 
-    const [collection, setCollection] = useState<Collection | null>(null);
+    const [collection, setCollection] =
+        useState<Collection | null>(null);
+
     const [posts, setPosts] = useState<LocalPost[]>([]);
     const [showOptions, setShowOptions] = useState(false);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const found = getCollections().find((c) => c.id === collectionId);
+        let cancelled = false;
+
+        const found = getCollections().find(
+            (item) => item.id === collectionId
+        );
+
         setCollection(found ?? null);
-        setPosts(getLocalPosts());
+
+        async function loadPosts() {
+            try {
+                const loadedPosts = await getPosts();
+
+                if (!cancelled) {
+                    setPosts(loadedPosts);
+                }
+            } catch (error) {
+                console.error("Could not load posts:", error);
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+            }
+        }
+
+        void loadPosts();
+
+        return () => {
+            cancelled = true;
+        };
     }, [collectionId]);
 
     function handleRename() {
-        if (!collection) return;
-        const name = window.prompt("Rename this collection:", collection.name);
-        if (!name || !name.trim()) return;
+        if (!collection) {
+            return;
+        }
 
-        renameCollection(collection.id, name.trim());
-        setCollection({ ...collection, name: name.trim() });
+        const name = window.prompt(
+            "Rename this collection:",
+            collection.name
+        );
+
+        if (!name || !name.trim()) {
+            return;
+        }
+
+        const trimmedName = name.trim();
+
+        const success = renameCollection(
+            collection.id,
+            trimmedName
+        );
+
+        if (!success) {
+            alert("Couldn't rename the collection.");
+            return;
+        }
+
+        setCollection({
+            ...collection,
+            name: trimmedName,
+        });
+
+        setShowOptions(false);
     }
 
     function handleDelete() {
-        if (!collection) return;
-        const confirmed = window.confirm("Delete this collection? The posts inside it won't be deleted.");
-        if (!confirmed) return;
+        if (!collection) {
+            return;
+        }
 
-        deleteCollection(collection.id);
+        const confirmed = window.confirm(
+            "Delete this collection? The posts inside it won't be deleted."
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        const success = deleteCollection(collection.id);
+
+        if (!success) {
+            alert("Couldn't delete the collection.");
+            return;
+        }
+
         router.push("/profile");
+        router.refresh();
+    }
+
+    if (loading) {
+        return (
+            <main className="min-h-screen bg-white px-5 pt-6 pb-[var(--bottom-nav-height)]">
+                <div className="flex h-60 items-center justify-center">
+                    <p className="text-sm text-neutral-400">
+                        Loading...
+                    </p>
+                </div>
+            </main>
+        );
     }
 
     if (!collection) {
         return (
             <main className="min-h-screen bg-white px-5 pt-6 pb-[var(--bottom-nav-height)]">
                 <div className="flex h-60 items-center justify-center">
-                    <p className="text-sm text-neutral-400">Collection not found</p>
+                    <p className="text-sm text-neutral-400">
+                        Collection not found
+                    </p>
                 </div>
             </main>
         );
@@ -68,21 +159,39 @@ export default function CollectionDetailPage() {
                         aria-label="Back"
                         className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100"
                     >
-                        <ChevronLeft size={20} className="text-neutral-700" />
+                        <ChevronLeft
+                            size={20}
+                            className="text-neutral-700"
+                        />
                     </button>
-                    <h1 className="text-base font-semibold text-neutral-900">{collection.name}</h1>
-                    <button onClick={handleRename} aria-label="Rename collection">
-                        <Pencil size={14} className="text-neutral-400" />
+
+                    <h1 className="text-base font-semibold text-neutral-900">
+                        {collection.name}
+                    </h1>
+
+                    <button
+                        onClick={handleRename}
+                        aria-label="Rename collection"
+                    >
+                        <Pencil
+                            size={14}
+                            className="text-neutral-400"
+                        />
                     </button>
                 </div>
 
                 <div className="relative">
                     <button
-                        onClick={() => setShowOptions(!showOptions)}
+                        onClick={() =>
+                            setShowOptions((current) => !current)
+                        }
                         aria-label="Collection options"
                         className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100"
                     >
-                        <MoreHorizontal size={19} className="text-neutral-700" />
+                        <MoreHorizontal
+                            size={19}
+                            className="text-neutral-700"
+                        />
                     </button>
 
                     {showOptions && (
@@ -109,18 +218,27 @@ export default function CollectionDetailPage() {
                         {post.imageUrl ? (
                             <img
                                 src={post.imageUrl}
-                                alt={post.caption || "Collection photo"}
+                                alt={
+                                    post.caption ||
+                                    "Collection photo"
+                                }
                                 className="h-full w-full object-cover"
                             />
                         ) : (
                             <div className="flex h-full w-full items-center justify-center">
-                                <ImageIcon size={22} className="text-neutral-300" />
+                                <ImageIcon
+                                    size={22}
+                                    className="text-neutral-300"
+                                />
                             </div>
                         )}
 
                         {post.music && (
                             <div className="absolute left-1 top-1 rounded-full bg-black/50 p-1">
-                                <Music size={12} className="text-white" />
+                                <Music
+                                    size={12}
+                                    className="text-white"
+                                />
                             </div>
                         )}
                     </Link>
@@ -130,7 +248,10 @@ export default function CollectionDetailPage() {
                     href={`/profile/collections/${collection.id}/add`}
                     className="flex aspect-[4/5] items-center justify-center rounded-md border-2 border-dashed border-neutral-300"
                 >
-                    <Plus size={22} className="text-neutral-400" />
+                    <Plus
+                        size={22}
+                        className="text-neutral-400"
+                    />
                 </Link>
             </div>
         </main>
