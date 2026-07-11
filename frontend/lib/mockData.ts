@@ -6,11 +6,13 @@ export type Post = {
     tags: string[];
     likes: number;
     comments: number;
+    userId: string;
 };
 
 export const MOCK_POSTS: Post[] = [
     {
         id: "1",
+        userId: "mock-user",
         username: "matthew.l",
         timeAgo: "2h ago",
         caption: "coffee run this morning",
@@ -20,6 +22,7 @@ export const MOCK_POSTS: Post[] = [
     },
     {
         id: "2",
+        userId: "mock-user",
         username: "juliaa.s",
         timeAgo: "5h ago",
         caption: "new denim day",
@@ -29,6 +32,7 @@ export const MOCK_POSTS: Post[] = [
     },
     {
         id: "3",
+        userId: "mock-user",
         username: "dev.kim",
         timeAgo: "1d ago",
         caption: "office fit",
@@ -38,6 +42,7 @@ export const MOCK_POSTS: Post[] = [
     },
     {
         id: "4",
+        userId: "mock-user",
         username: "ana.torres",
         timeAgo: "1d ago",
         caption: "weekend errands",
