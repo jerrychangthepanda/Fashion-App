@@ -27,7 +27,7 @@ type PostRow = {
     username: string;
     caption: string;
     tags: string[] | null;
-    image_path: string;
+    image_url: string;
     music: MusicTrack | null;
     created_at: string;
 };
@@ -78,7 +78,7 @@ function rowToPost(row: PostRow): LocalPost {
         data: { publicUrl },
     } = supabase.storage
         .from(POST_IMAGES_BUCKET)
-        .getPublicUrl(row.image_path);
+        .getPublicUrl(row.image_url);
 
     return {
         id: row.id,
@@ -231,7 +231,7 @@ export async function createPost(
             username,
             caption: input.caption.trim() || "new fit",
             tags: input.tags,
-            image_path: imagePath,
+            image_url: imagePath,
             music: input.music ?? null,
         })
         .select()
@@ -322,7 +322,7 @@ export async function deletePost(postId: string): Promise<void> {
     const { data: existingPost, error: lookupError } =
         await supabase
             .from("posts")
-            .select("user_id, image_path")
+            .select("user_id, image_url")
             .eq("id", postId)
             .single();
 
@@ -347,7 +347,7 @@ export async function deletePost(postId: string): Promise<void> {
 
     const { error: storageError } = await supabase.storage
         .from(POST_IMAGES_BUCKET)
-        .remove([existingPost.image_path]);
+        .remove([existingPost.image_url]);
 
     if (storageError) {
         console.error(
