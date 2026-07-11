@@ -1,3 +1,5 @@
+import { supabase } from "@/lib/supabase";
+
 export type MockUser = {
     username: string;
     name: string;
@@ -78,4 +80,109 @@ export function getAllUsers(): MockUser[] {
 export function hasCurrentUser(): boolean {
     if (typeof window === "undefined") return false;
     return Boolean(localStorage.getItem("username"));
+}
+
+export type Profile = {
+    id: string;
+    username: string;
+    bio: string;
+    profilePictureUrl: string | null;
+};
+
+export async function getMyProfile(): Promise<Profile | null> {
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return null;
+
+    const { data, error } = await supabase
+        .from("profiles")
+        .select("id, username, bio, profile_picture_url")
+        .eq("id", user.id)
+        .single();
+
+    if (error) {
+        console.error("Failed to load your profile:", error);
+        throw error;
+    }
+
+    return {
+        id: data.id,
+        username: data.username,
+        bio: data.bio ?? "",
+        profilePictureUrl: data.profile_picture_url,
+    };
+}
+
+export async function updateMyProfile(updates: {
+    username: string;
+    bio: string;
+    profilePictureFile?: File | null;
+}): Promise<Profile> {
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+        throw new Error("You must be signed in.");
+    }
+
+    let profilePictureUrl: string | undefined;
+
+    if (updates.profilePictureFile) {
+        const extension = updates.profilePictureFile.type === "image/png" ? "png" : "jpg";
+        const profilePicturePath = `${user.id}/profile-picture.${extension}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from("profile_picture")
+            .upload(profilePicturePath, updates.profilePictureFile, {
+                contentType: updates.profilePictureFile.type || "image/jpeg",
+                upsert: true,
+            });
+
+        if (uploadError) {
+            console.error("Failed to upload profile picture:", uploadError);
+            throw uploadError;
+        }
+
+        const {
+            data: { publicUrl },
+        } = supabase.storage.from("profile_picture").getPublicUrl(profilePicturePath);
+
+        // Cache-bust: the path is reused every time, so force a fresh fetch.
+        profilePictureUrl = `${publicUrl}?updated=${Date.now()}`;
+    }
+
+    const { data, error } = await supabase
+        .from("profiles")
+        .update({
+            username: updates.username.trim(),
+            bio: updates.bio.trim(),
+            ...(profilePictureUrl ? { profile_picture_url: profilePictureUrl } : {}),
+        })
+        .eq("id", user.id)
+        .select("id, username, bio, profile_picture_url")
+        .single();
+
+    if (error) {
+        if (error.code === "23505") {
+            throw new Error("That username is already taken.");
+        }
+        console.error("Failed to update profile:", error);
+        throw error;
+    }
+
+    localStorage.setItem("username", data.username);
+    localStorage.setItem("bio", data.bio ?? "");
+    if (data.profile_picture_url) {
+        localStorage.setItem("profileImage", data.profile_picture_url);
+    }
+
+    return {
+        id: data.id,
+        username: data.username,
+        bio: data.bio ?? "",
+        profilePictureUrl: data.profile_picture_url,
+    };
 }

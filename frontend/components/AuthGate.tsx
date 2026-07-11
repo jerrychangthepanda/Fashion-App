@@ -17,12 +17,20 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
         const { data: profile } = await supabase
             .from("profiles")
-            .select("username")
+            .select("username, bio, profile_picture_url")
             .eq("id", userId)
             .single();
+
         if (profile?.username) {
             localStorage.setItem("username", profile.username);
         }
+        if (profile?.bio) {
+            localStorage.setItem("bio", profile.bio);
+        }
+        if (profile?.profile_picture_url) {
+            localStorage.setItem("profileImage", profile.profile_picture_url);
+        }
+
         syncedUserId.current = userId;
     }
 

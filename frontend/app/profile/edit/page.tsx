@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { User } from "lucide-react";
+import { getMyProfile, updateMyProfile } from "@/lib/users";
 
 export default function EditProfilePage() {
     const router = useRouter();
@@ -10,42 +11,66 @@ export default function EditProfilePage() {
     const [username, setUsername] = useState("");
     const [bio, setBio] = useState("");
     const [profileImage, setProfileImage] = useState<string | null>(null);
+    const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        const savedUsername = localStorage.getItem("username");
-        const savedBio = localStorage.getItem("bio");
-        const savedProfileImage = localStorage.getItem("profileImage");
+        async function loadProfile() {
+            try {
+                const profile = await getMyProfile();
+                if (profile) {
+                    setUsername(profile.username);
+                    setBio(profile.bio);
+                    setProfileImage(profile.profilePictureUrl);
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Couldn't load your profile.");
+            } finally {
+                setLoading(false);
+            }
+        }
 
-        if (savedUsername) setUsername(savedUsername);
-        if (savedBio) setBio(savedBio);
-        if (savedProfileImage) setProfileImage(savedProfileImage);
+        loadProfile();
     }, []);
 
     function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        const reader = new FileReader();
+        setProfilePictureFile(file);
 
+        const reader = new FileReader();
         reader.onloadend = () => {
             setProfileImage(reader.result as string);
         };
-
         reader.readAsDataURL(file);
     }
 
-    function handleSave() {
+    async function handleSave() {
+        if (saving) return;
+
         try {
-            localStorage.setItem("username", username);
-            localStorage.setItem("bio", bio);
-            if (profileImage) {
-                localStorage.setItem("profileImage", profileImage);
-            }
+            setSaving(true);
+            await updateMyProfile({ username, bio, profilePictureFile });
             router.push("/profile");
         } catch (error) {
             console.error(error);
-            alert("Couldn't save — the photo might be too large.");
+            const message =
+                error instanceof Error ? error.message : "Couldn't save your profile.";
+            alert(message);
+        } finally {
+            setSaving(false);
         }
+    }
+
+    if (loading) {
+        return (
+            <main className="flex min-h-screen items-center justify-center bg-white">
+                <p className="text-sm text-neutral-400">Loading...</p>
+            </main>
+        );
     }
 
     return (
@@ -80,9 +105,7 @@ export default function EditProfilePage() {
 
             <div className="mt-8 flex flex-col gap-4">
                 <div>
-                    <label className="text-sm font-medium text-neutral-700">
-                        Username
-                    </label>
+                    <label className="text-sm font-medium text-neutral-700">Username</label>
                     <input
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
@@ -103,14 +126,16 @@ export default function EditProfilePage() {
 
                 <button
                     onClick={handleSave}
-                    className="mt-4 rounded-full bg-black px-5 py-3 text-sm font-semibold text-white"
+                    disabled={saving}
+                    className="mt-4 rounded-full bg-black px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
                 >
-                    Save
+                    {saving ? "Saving..." : "Save"}
                 </button>
 
                 <button
                     onClick={() => router.push("/profile")}
-                    className="rounded-full bg-neutral-100 px-5 py-3 text-sm font-semibold text-neutral-700"
+                    disabled={saving}
+                    className="rounded-full bg-neutral-100 px-5 py-3 text-sm font-semibold text-neutral-700 disabled:opacity-50"
                 >
                     Cancel
                 </button>
