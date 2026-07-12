@@ -27,6 +27,7 @@ import {
     getPostById,
     type LocalPost,
 } from "@/lib/localPosts";
+import { getCommentCount } from "@/lib/comments";
 import { togglePostInCollection } from "@/lib/collections";
 import { CommentsSheet } from "@/components/CommentsSheet";
 
@@ -45,13 +46,12 @@ export default function ProfilePostPage() {
 
     const [liked, setLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(0);
+    const [commentCount, setCommentCount] = useState(0);
+
     const [showComments, setShowComments] = useState(false);
     const [showOptions, setShowOptions] = useState(false);
     const [musicPlaying, setMusicPlaying] = useState(false);
     const [deleting, setDeleting] = useState(false);
-
-    const [savedUsername, setSavedUsername] =
-        useState<string | null>(null);
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -62,7 +62,11 @@ export default function ProfilePostPage() {
             try {
                 setPostMissing(false);
 
-                const foundPost = await getPostById(postId);
+                const [foundPost, loadedCommentCount] =
+                    await Promise.all([
+                        getPostById(postId),
+                        getCommentCount(postId),
+                    ]);
 
                 if (cancelled) {
                     return;
@@ -75,6 +79,7 @@ export default function ProfilePostPage() {
 
                 setPost(foundPost);
                 setLikeCount(foundPost.likes);
+                setCommentCount(loadedCommentCount);
             } catch (error) {
                 console.error("Could not load post:", error);
 
@@ -90,10 +95,6 @@ export default function ProfilePostPage() {
             cancelled = true;
         };
     }, [postId]);
-
-    useEffect(() => {
-        setSavedUsername(localStorage.getItem("username"));
-    }, []);
 
     function toggleLike() {
         setLikeCount((count) =>
@@ -159,7 +160,10 @@ export default function ProfilePostPage() {
         );
 
         if (!success) {
-            alert("Couldn't remove the post from the collection.");
+            alert(
+                "Couldn't remove the post from the collection."
+            );
+
             return;
         }
 
@@ -322,9 +326,7 @@ export default function ProfilePostPage() {
 
                         <div>
                             <p className="text-sm font-medium text-neutral-900">
-                                {savedUsername ||
-                                    post.username ||
-                                    "Username"}
+                                {post.username || "Username"}
                             </p>
 
                             <p className="text-xs text-neutral-400">
@@ -470,7 +472,7 @@ export default function ProfilePostPage() {
                             />
 
                             <span className="text-sm text-neutral-500">
-                                {post.comments}
+                                {commentCount}
                             </span>
                         </button>
                     </div>
@@ -480,7 +482,9 @@ export default function ProfilePostPage() {
             <CommentsSheet
                 open={showComments}
                 onClose={() => setShowComments(false)}
-                commentCount={post.comments}
+                postId={post.id}
+                commentCount={commentCount}
+                onCommentCountChange={setCommentCount}
             />
         </main>
     );

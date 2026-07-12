@@ -13,6 +13,7 @@ import {
     VolumeX,
 } from "lucide-react";
 import type { LocalPost } from "@/lib/localPosts";
+import { getCommentCount } from "@/lib/comments";
 import { CommentsSheet } from "@/components/CommentsSheet";
 import { PostOptionsMenu } from "@/components/PostOptionsMenu";
 
@@ -27,11 +28,18 @@ export function PostCard({
 }) {
     const [liked, setLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(post.likes);
+    const [commentCount, setCommentCount] =
+        useState(post.comments);
+
     const [showComments, setShowComments] = useState(false);
     const [showOptions, setShowOptions] = useState(false);
     const [musicPlaying, setMusicPlaying] = useState(false);
-    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-    const [profileImage, setProfileImage] = useState<string | null>(null);
+
+    const [currentUserId, setCurrentUserId] =
+        useState<string | null>(null);
+
+    const [profileImage, setProfileImage] =
+        useState<string | null>(null);
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -39,6 +47,31 @@ export function PostCard({
         setCurrentUserId(localStorage.getItem("userId"));
         setProfileImage(localStorage.getItem("profileImage"));
     }, []);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        async function loadCommentCount() {
+            try {
+                const count = await getCommentCount(post.id);
+
+                if (!cancelled) {
+                    setCommentCount(count);
+                }
+            } catch (error) {
+                console.error(
+                    "Could not load comment count:",
+                    error
+                );
+            }
+        }
+
+        void loadCommentCount();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [post.id]);
 
     const isOwnPost = post.userId === currentUserId;
     const displayUsername = post.username;
@@ -48,13 +81,19 @@ export function PostCard({
         : `/u/${encodeURIComponent(post.username)}`;
 
     function toggleLike() {
-        setLikeCount((count) => (liked ? count - 1 : count + 1));
-        setLiked(!liked);
+        setLikeCount((count) =>
+            liked ? Math.max(0, count - 1) : count + 1
+        );
+
+        setLiked((current) => !current);
     }
 
     async function toggleMusic() {
         const audio = audioRef.current;
-        if (!audio) return;
+
+        if (!audio) {
+            return;
+        }
 
         try {
             if (musicPlaying) {
@@ -72,7 +111,10 @@ export function PostCard({
     return (
         <article className="border-b border-neutral-100 pb-4">
             <div className="relative flex items-center justify-between px-4 py-3">
-                <Link href={profileHref} className="flex items-center gap-2">
+                <Link
+                    href={profileHref}
+                    className="flex items-center gap-2"
+                >
                     <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
                         {isOwnPost && profileImage ? (
                             <img
@@ -81,7 +123,10 @@ export function PostCard({
                                 className="h-full w-full object-cover"
                             />
                         ) : (
-                            <User size={16} className="text-neutral-400" />
+                            <User
+                                size={16}
+                                className="text-neutral-400"
+                            />
                         )}
                     </div>
 
@@ -89,12 +134,21 @@ export function PostCard({
                         <p className="text-sm font-medium text-neutral-900">
                             {displayUsername}
                         </p>
-                        <p className="text-xs text-neutral-400">{post.timeAgo}</p>
+
+                        <p className="text-xs text-neutral-400">
+                            {post.timeAgo}
+                        </p>
                     </div>
                 </Link>
 
-                <button onClick={() => setShowOptions(true)} aria-label="Post options">
-                    <MoreHorizontal size={18} className="text-neutral-400" />
+                <button
+                    onClick={() => setShowOptions(true)}
+                    aria-label="Post options"
+                >
+                    <MoreHorizontal
+                        size={18}
+                        className="text-neutral-400"
+                    />
                 </button>
 
                 <PostOptionsMenu
@@ -111,11 +165,16 @@ export function PostCard({
                 {post.imageUrl ? (
                     <img
                         src={post.imageUrl}
-                        alt={post.caption || "Fashion post"}
+                        alt={
+                            post.caption || "Fashion post"
+                        }
                         className="h-full w-full object-cover"
                     />
                 ) : (
-                    <ImageIcon size={28} className="text-neutral-300" />
+                    <ImageIcon
+                        size={28}
+                        className="text-neutral-300"
+                    />
                 )}
             </div>
 
@@ -125,13 +184,18 @@ export function PostCard({
                         <div className="flex min-w-0 items-center gap-3">
                             {post.music.artworkUrl ? (
                                 <img
-                                    src={post.music.artworkUrl}
+                                    src={
+                                        post.music.artworkUrl
+                                    }
                                     alt=""
                                     className="h-10 w-10 rounded-xl object-cover"
                                 />
                             ) : (
                                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white">
-                                    <Music size={16} className="text-neutral-600" />
+                                    <Music
+                                        size={16}
+                                        className="text-neutral-600"
+                                    />
                                 </div>
                             )}
 
@@ -139,6 +203,7 @@ export function PostCard({
                                 <p className="truncate text-sm font-medium text-neutral-900">
                                     {post.music.title}
                                 </p>
+
                                 <p className="truncate text-xs text-neutral-500">
                                     {post.music.artist}
                                 </p>
@@ -146,27 +211,43 @@ export function PostCard({
                         </div>
 
                         <button
-                            onClick={toggleMusic}
+                            onClick={() => void toggleMusic()}
                             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white"
-                            aria-label={musicPlaying ? "Pause music" : "Play music"}
+                            aria-label={
+                                musicPlaying
+                                    ? "Pause music"
+                                    : "Play music"
+                            }
                         >
                             {musicPlaying ? (
-                                <Volume2 size={17} className="text-neutral-700" />
+                                <Volume2
+                                    size={17}
+                                    className="text-neutral-700"
+                                />
                             ) : (
-                                <VolumeX size={17} className="text-neutral-700" />
+                                <VolumeX
+                                    size={17}
+                                    className="text-neutral-700"
+                                />
                             )}
                         </button>
 
                         <audio
                             ref={audioRef}
                             src={post.music.previewUrl}
-                            onPause={() => setMusicPlaying(false)}
-                            onEnded={() => setMusicPlaying(false)}
+                            onPause={() =>
+                                setMusicPlaying(false)
+                            }
+                            onEnded={() =>
+                                setMusicPlaying(false)
+                            }
                         />
                     </div>
                 )}
 
-                <p className="text-sm text-neutral-900">{post.caption}</p>
+                <p className="text-sm text-neutral-900">
+                    {post.caption}
+                </p>
 
                 {post.tags.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-2">
@@ -182,7 +263,10 @@ export function PostCard({
                 )}
 
                 <div className="mt-3 flex items-center gap-4">
-                    <button onClick={toggleLike} className="flex items-center gap-1.5">
+                    <button
+                        onClick={toggleLike}
+                        className="flex items-center gap-1.5"
+                    >
                         <Heart
                             size={18}
                             className={
@@ -191,16 +275,23 @@ export function PostCard({
                                     : "text-neutral-500"
                             }
                         />
-                        <span className="text-sm text-neutral-500">{likeCount}</span>
+
+                        <span className="text-sm text-neutral-500">
+                            {likeCount}
+                        </span>
                     </button>
 
                     <button
                         onClick={() => setShowComments(true)}
                         className="flex items-center gap-1.5"
                     >
-                        <MessageCircle size={18} className="text-neutral-500" />
+                        <MessageCircle
+                            size={18}
+                            className="text-neutral-500"
+                        />
+
                         <span className="text-sm text-neutral-500">
-                            {post.comments}
+                            {commentCount}
                         </span>
                     </button>
                 </div>
@@ -209,7 +300,9 @@ export function PostCard({
             <CommentsSheet
                 open={showComments}
                 onClose={() => setShowComments(false)}
-                commentCount={post.comments}
+                postId={post.id}
+                commentCount={commentCount}
+                onCommentCountChange={setCommentCount}
             />
         </article>
     );
