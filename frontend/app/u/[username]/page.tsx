@@ -3,13 +3,12 @@
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProfileView } from "@/components/ProfileView";
-import { getProfileByUsername, MOCK_USERS } from "@/lib/users";
+import { getProfileByUsername } from "@/lib/users";
 import { getPostsByUser, type LocalPost } from "@/lib/localPosts";
 
 type ProfileState =
     | { status: "loading" }
     | { status: "not-found" }
-    | { status: "mock" }
     | {
         status: "real";
         userId: string;
@@ -71,13 +70,7 @@ export default function UserProfilePage({
                     return;
                 }
 
-                const isMockUser = MOCK_USERS.some(
-                    (user) => user.username === decodedUsername
-                );
-
-                setState({
-                    status: isMockUser ? "mock" : "not-found",
-                });
+                setState({ status: "not-found" });
             } catch (error) {
                 console.error(
                     "Could not load profile:",
@@ -114,28 +107,17 @@ export default function UserProfilePage({
         );
     }
 
-    if (state.status === "real") {
-        return (
-            <ProfileView
-                username={decodedUsername}
-                userId={state.userId}
-                bio={
-                    state.bio ||
-                    "This user hasn't added a bio yet"
-                }
-                avatarImage={state.avatarImage}
-                isOwnProfile={false}
-                posts={state.posts}
-            />
-        );
-    }
-
     return (
         <ProfileView
             username={decodedUsername}
-            bio="This user hasn't added a bio yet"
-            avatarImage={null}
+            userId={state.userId}
+            bio={
+                state.bio ||
+                "This user hasn't added a bio yet"
+            }
+            avatarImage={state.avatarImage}
             isOwnProfile={false}
+            posts={state.posts}
         />
     );
 }

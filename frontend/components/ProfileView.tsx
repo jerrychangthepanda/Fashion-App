@@ -18,19 +18,15 @@ import {
 import type { LocalPost } from "@/lib/localPosts";
 import { getCollections, createCollection, type Collection } from "@/lib/collections";
 import { CollectionTile } from "@/components/CollectionTile";
-import { MOCK_FOLLOWING, MOCK_FOLLOWERS, getUsersByUsernames, type MockUser } from "@/lib/users";
 import {
     followUser,
-    followUserMock,
     getFollowerCount,
     getFollowers,
     getFollowingCount,
     getFollowingList,
-    getFollowingUsernamesMock,
     isFollowing,
-    isFollowingMock,
     unfollowUser,
-    unfollowUserMock,
+    type FollowListUser,
 } from "@/lib/follows";
 
 function FollowListSheet({
@@ -41,7 +37,7 @@ function FollowListSheet({
 }: {
     open: boolean;
     title: string;
-    users: MockUser[];
+    users: FollowListUser[];
     onClose: () => void;
 }) {
     const [searchQuery, setSearchQuery] = useState("");
@@ -179,10 +175,10 @@ export function ProfileView({
     const [activeTab, setActiveTab] = useState<"posts" | "collections">("posts");
     const [localCollections, setLocalCollections] = useState<Collection[]>(collections);
     const [openFollowList, setOpenFollowList] = useState<"following" | "followers" | null>(null);
-    const [followingListUsers, setFollowingListUsers] = useState<MockUser[]>(MOCK_FOLLOWING);
-    const [followersListUsers, setFollowersListUsers] = useState<MockUser[]>(MOCK_FOLLOWERS);
-    const [followerCount, setFollowerCount] = useState(MOCK_FOLLOWERS.length);
-    const [followingCount, setFollowingCount] = useState(MOCK_FOLLOWING.length);
+    const [followingListUsers, setFollowingListUsers] = useState<FollowListUser[]>([]);
+    const [followersListUsers, setFollowersListUsers] = useState<FollowListUser[]>([]);
+    const [followerCount, setFollowerCount] = useState(0);
+    const [followingCount, setFollowingCount] = useState(0);
 
     useEffect(() => {
         let cancelled = false;
@@ -236,24 +232,12 @@ export function ProfileView({
 
         if (userId) {
             void loadRealFollowState(userId);
-        } else {
-            // Mock account fallback — unchanged behavior.
-            setFollowingListUsers(
-                getUsersByUsernames(getFollowingUsernamesMock())
-            );
-            setFollowersListUsers(MOCK_FOLLOWERS);
-            setFollowerCount(MOCK_FOLLOWERS.length);
-            setFollowingCount(MOCK_FOLLOWING.length);
-
-            if (!isOwnProfile) {
-                setFollowing(isFollowingMock(username));
-            }
         }
 
         return () => {
             cancelled = true;
         };
-    }, [isOwnProfile, userId, username]);
+    }, [isOwnProfile, userId]);
 
     async function handleToggleFollow() {
         if (followActionInFlight) {
@@ -261,19 +245,8 @@ export function ProfileView({
         }
 
         if (!userId) {
-            // Mock account — unchanged localStorage behavior.
-            const nextFollowing = !following;
-            setFollowing(nextFollowing);
-
-            const success = nextFollowing
-                ? followUserMock(username)
-                : unfollowUserMock(username);
-
-            if (!success) {
-                alert("Couldn't update follow status - storage might be full.");
-                setFollowing(!nextFollowing);
-            }
-
+            // Follow button is never shown without a real target userId
+            // (see the render below), so this should be unreachable.
             return;
         }
 

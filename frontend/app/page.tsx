@@ -3,8 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Bell, Music, Search, Tag, User, X } from "lucide-react";
-import { MOCK_POSTS } from "@/lib/mockData";
-import { getAllUsers } from "@/lib/users";
 import { FeedList } from "@/components/FeedList";
 import { getPosts, type LocalPost } from "@/lib/localPosts";
 
@@ -57,10 +55,7 @@ export default function FeedPage() {
         };
     }, []);
 
-    const posts = useMemo<LocalPost[]>(
-        () => [...supabasePosts, ...MOCK_POSTS],
-        [supabasePosts]
-    );
+    const posts = supabasePosts;
 
     const searchResults = useMemo(() => {
         const query = searchQuery.toLowerCase().trim();
@@ -73,13 +68,18 @@ export default function FeedPage() {
             };
         }
 
-        const matchingProfiles = getAllUsers()
-            .filter(
-                (user) =>
-                    user.username.toLowerCase().includes(query) ||
-                    user.name.toLowerCase().includes(query)
-            )
-            .map((user) => user.username);
+        // Real cross-user profile search isn't wired up yet — this only
+        // matches your own signed-in username for now.
+        const savedUsername =
+            typeof window !== "undefined"
+                ? localStorage.getItem("username")
+                : null;
+
+        const matchingProfiles =
+            savedUsername &&
+                savedUsername.toLowerCase().includes(query)
+                ? [savedUsername]
+                : [];
 
         const brandMap = new Map<string, string>();
         const musicMap = new Map<string, string>();

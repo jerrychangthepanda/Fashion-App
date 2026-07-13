@@ -1,61 +1,7 @@
 import { supabase } from "@/lib/supabase";
-import { MOCK_FOLLOWING, type MockUser } from "@/lib/users";
 
-// ---------------------------------------------------------------------
-// Mock-account following. MOCK_USERS are placeholder demo people with
-// no real Supabase account behind them, and they're slated to be
-// removed entirely — intentionally left on localStorage only rather
-// than wired to any backend. Do not extend this to real accounts.
-// ---------------------------------------------------------------------
-
-const FOLLOWING_STORAGE_KEY = "fashion-app:following-usernames";
-
-const DEFAULT_FOLLOWING_USERNAMES = MOCK_FOLLOWING.map(
-    (user) => user.username
-);
-
-export function getFollowingUsernamesMock(): string[] {
-    try {
-        const raw = localStorage.getItem(FOLLOWING_STORAGE_KEY);
-        return raw ? JSON.parse(raw) : DEFAULT_FOLLOWING_USERNAMES;
-    } catch {
-        return DEFAULT_FOLLOWING_USERNAMES;
-    }
-}
-
-export function isFollowingMock(username: string): boolean {
-    return getFollowingUsernamesMock().includes(username);
-}
-
-function saveFollowingUsernamesMock(usernames: string[]): boolean {
-    try {
-        localStorage.setItem(
-            FOLLOWING_STORAGE_KEY,
-            JSON.stringify(usernames)
-        );
-        return true;
-    } catch {
-        return false;
-    }
-}
-
-export function followUserMock(username: string): boolean {
-    const current = getFollowingUsernamesMock();
-    if (current.includes(username)) return true;
-    return saveFollowingUsernamesMock([...current, username]);
-}
-
-export function unfollowUserMock(username: string): boolean {
-    const current = getFollowingUsernamesMock();
-    return saveFollowingUsernamesMock(
-        current.filter((existing) => existing !== username)
-    );
-}
-
-// ---------------------------------------------------------------------
-// Real accounts (Supabase-backed). All functions below take the
-// target's real profile id (uuid), never a username.
-// ---------------------------------------------------------------------
+// All functions below take the target's real profile id (uuid), never
+// a username, and are backed entirely by Supabase.
 
 export async function isFollowing(
     targetUserId: string
@@ -197,6 +143,15 @@ export async function getFollowingCount(
     return count ?? 0;
 }
 
+// Shape used to render a person tile in the follower/following list
+// sheets — always populated from real `profiles` rows.
+export type FollowListUser = {
+    username: string;
+    name: string;
+    bio: string;
+    avatarImage?: string | null;
+};
+
 type FollowProfileRow = {
     profiles: {
         username: string;
@@ -205,7 +160,9 @@ type FollowProfileRow = {
     } | null;
 };
 
-function rowToMockUser(row: FollowProfileRow): MockUser | null {
+function rowToFollowListUser(
+    row: FollowProfileRow
+): FollowListUser | null {
     if (!row.profiles) {
         return null;
     }
@@ -224,7 +181,7 @@ function rowToMockUser(row: FollowProfileRow): MockUser | null {
 // per row, not an array (same to-one shape as posts/comments joins).
 export async function getFollowers(
     userId: string
-): Promise<MockUser[]> {
+): Promise<FollowListUser[]> {
     const { data, error } = await supabase
         .from("follows")
         .select(
@@ -238,14 +195,14 @@ export async function getFollowers(
     }
 
     return ((data ?? []) as unknown as FollowProfileRow[])
-        .map(rowToMockUser)
-        .filter((user): user is MockUser => user !== null);
+        .map(rowToFollowListUser)
+        .filter((user): user is FollowListUser => user !== null);
 }
 
 // People userId follows.
 export async function getFollowingList(
     userId: string
-): Promise<MockUser[]> {
+): Promise<FollowListUser[]> {
     const { data, error } = await supabase
         .from("follows")
         .select(
@@ -259,6 +216,6 @@ export async function getFollowingList(
     }
 
     return ((data ?? []) as unknown as FollowProfileRow[])
-        .map(rowToMockUser)
-        .filter((user): user is MockUser => user !== null);
+        .map(rowToFollowListUser)
+        .filter((user): user is FollowListUser => user !== null);
 }
