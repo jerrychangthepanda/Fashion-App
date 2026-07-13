@@ -261,11 +261,19 @@ export function CommentsSheet({
                                     key={comment.id}
                                     className="flex items-start gap-3 border-b border-neutral-100 py-3"
                                 >
-                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-100">
-                                        <User
-                                            size={16}
-                                            className="text-neutral-400"
-                                        />
+                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
+                                        {comment.avatarUrl ? (
+                                            <img
+                                                src={comment.avatarUrl}
+                                                alt=""
+                                                className="h-full w-full object-cover"
+                                            />
+                                        ) : (
+                                            <User
+                                                size={16}
+                                                className="text-neutral-400"
+                                            />
+                                        )}
                                     </div>
 
                                     <div className="min-w-0 flex-1">

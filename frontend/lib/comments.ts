@@ -5,6 +5,7 @@ export type PublicComment = {
     postId: string;
     userId: string;
     username: string;
+    avatarUrl: string | null;
     body: string;
     createdAt: string;
     timeAgo: string;
@@ -16,7 +17,10 @@ type CommentRow = {
     user_id: string;
     body: string;
     created_at: string;
-    profiles: { username: string } | null;
+    profiles: {
+        username: string;
+        profile_picture_url: string | null;
+    } | null;
 };
 
 const UUID_PATTERN =
@@ -61,6 +65,7 @@ function rowToComment(row: CommentRow): PublicComment {
         postId: row.post_id,
         userId: row.user_id,
         username: row.profiles?.username ?? "user",
+        avatarUrl: row.profiles?.profile_picture_url ?? null,
         body: row.body,
         createdAt: row.created_at,
         timeAgo: getTimeAgo(row.created_at),
@@ -120,7 +125,7 @@ export async function getComments(
             user_id,
             body,
             created_at,
-            profiles ( username )
+            profiles ( username, profile_picture_url )
             `
         )
         .eq("post_id", postId)
@@ -200,7 +205,7 @@ export async function createComment(
             user_id,
             body,
             created_at,
-            profiles ( username )
+            profiles ( username, profile_picture_url )
             `
         )
         .single();
