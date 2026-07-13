@@ -58,7 +58,9 @@ export default function FeedPage() {
 
     const posts = supabasePosts;
 
-    const [profileMatches, setProfileMatches] = useState<string[]>([]);
+    const [profileMatches, setProfileMatches] = useState<
+        { username: string; profilePictureUrl: string | null }[]
+    >([]);
 
     useEffect(() => {
         let cancelled = false;
@@ -75,7 +77,11 @@ export default function FeedPage() {
 
                 if (!cancelled) {
                     setProfileMatches(
-                        results.map((profile) => profile.username)
+                        results.map((profile) => ({
+                            username: profile.username,
+                            profilePictureUrl:
+                                profile.profilePictureUrl,
+                        }))
                     );
                 }
             } catch (error) {
@@ -258,22 +264,34 @@ export default function FeedPage() {
 
                                     <div className="space-y-1">
                                         {profileMatches.map(
-                                            (username) => (
+                                            (profile) => (
                                                 <Link
-                                                    key={username}
-                                                    href={`/u/${username}`}
+                                                    key={profile.username}
+                                                    href={`/u/${profile.username}`}
                                                     className="flex items-center gap-3 rounded-2xl px-2 py-2 hover:bg-neutral-50"
                                                 >
-                                                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100">
-                                                        <User
-                                                            size={17}
-                                                            className="text-neutral-500"
-                                                        />
+                                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
+                                                        {profile.profilePictureUrl ? (
+                                                            <img
+                                                                src={
+                                                                    profile.profilePictureUrl
+                                                                }
+                                                                alt={
+                                                                    profile.username
+                                                                }
+                                                                className="h-full w-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <User
+                                                                size={17}
+                                                                className="text-neutral-500"
+                                                            />
+                                                        )}
                                                     </div>
 
                                                     <div>
                                                         <p className="text-sm font-medium text-neutral-900">
-                                                            {username}
+                                                            {profile.username}
                                                         </p>
 
                                                         <p className="text-xs text-neutral-400">
