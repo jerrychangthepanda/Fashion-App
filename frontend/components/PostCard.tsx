@@ -14,6 +14,12 @@ import {
 } from "lucide-react";
 import type { LocalPost } from "@/lib/localPosts";
 import { getCommentCount } from "@/lib/comments";
+import {
+    getLikeCount,
+    isLikedByCurrentUser,
+    likePost,
+    unlikePost,
+} from "@/lib/likes";
 import { CommentsSheet } from "@/components/CommentsSheet";
 import { PostOptionsMenu } from "@/components/PostOptionsMenu";
 
@@ -28,6 +34,8 @@ export function PostCard({
 }) {
     const [liked, setLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(post.likes);
+    const [likeActionInFlight, setLikeActionInFlight] =
+        useState(false);
     const [commentCount, setCommentCount] =
         useState(post.comments);
 
@@ -69,6 +77,35 @@ export function PostCard({
         };
     }, [post.id]);
 
+    useEffect(() => {
+        let cancelled = false;
+
+        async function loadLikeState() {
+            try {
+                const [count, likedByMe] = await Promise.all([
+                    getLikeCount(post.id),
+                    isLikedByCurrentUser(post.id),
+                ]);
+
+                if (!cancelled) {
+                    setLikeCount(count);
+                    setLiked(likedByMe);
+                }
+            } catch (error) {
+                console.error(
+                    "Could not load like state:",
+                    error
+                );
+            }
+        }
+
+        void loadLikeState();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [post.id]);
+
     const isOwnPost = post.userId === currentUserId;
     const displayUsername = post.username;
 
@@ -76,12 +113,36 @@ export function PostCard({
         ? "/profile"
         : `/u/${encodeURIComponent(post.username)}`;
 
-    function toggleLike() {
+    async function toggleLike() {
+        if (likeActionInFlight) {
+            return;
+        }
+
+        const wasLiked = liked;
+
+        setLiked(!wasLiked);
         setLikeCount((count) =>
-            liked ? Math.max(0, count - 1) : count + 1
+            wasLiked ? Math.max(0, count - 1) : count + 1
         );
 
-        setLiked((current) => !current);
+        setLikeActionInFlight(true);
+
+        try {
+            if (wasLiked) {
+                await unlikePost(post.id);
+            } else {
+                await likePost(post.id);
+            }
+        } catch (error) {
+            console.error("Could not update like:", error);
+
+            setLiked(wasLiked);
+            setLikeCount((count) =>
+                wasLiked ? count + 1 : Math.max(0, count - 1)
+            );
+        } finally {
+            setLikeActionInFlight(false);
+        }
     }
 
     async function toggleMusic() {
@@ -260,8 +321,9 @@ export function PostCard({
 
                 <div className="mt-3 flex items-center gap-4">
                     <button
-                        onClick={toggleLike}
-                        className="flex items-center gap-1.5"
+                        onClick={() => void toggleLike()}
+                        disabled={likeActionInFlight}
+                        className="flex items-center gap-1.5 disabled:opacity-60"
                     >
                         <Heart
                             size={18}

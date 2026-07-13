@@ -28,6 +28,12 @@ import {
     type LocalPost,
 } from "@/lib/localPosts";
 import { getCommentCount } from "@/lib/comments";
+import {
+    getLikeCount,
+    isLikedByCurrentUser,
+    likePost,
+    unlikePost,
+} from "@/lib/likes";
 import { togglePostInCollection } from "@/lib/collections";
 import { CommentsSheet } from "@/components/CommentsSheet";
 
@@ -46,6 +52,8 @@ export default function ProfilePostPage() {
 
     const [liked, setLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(0);
+    const [likeActionInFlight, setLikeActionInFlight] =
+        useState(false);
     const [commentCount, setCommentCount] = useState(0);
 
     const [showComments, setShowComments] = useState(false);
@@ -62,11 +70,17 @@ export default function ProfilePostPage() {
             try {
                 setPostMissing(false);
 
-                const [foundPost, loadedCommentCount] =
-                    await Promise.all([
-                        getPostById(postId),
-                        getCommentCount(postId),
-                    ]);
+                const [
+                    foundPost,
+                    loadedCommentCount,
+                    loadedLikeCount,
+                    likedByMe,
+                ] = await Promise.all([
+                    getPostById(postId),
+                    getCommentCount(postId),
+                    getLikeCount(postId),
+                    isLikedByCurrentUser(postId),
+                ]);
 
                 if (cancelled) {
                     return;
@@ -78,7 +92,8 @@ export default function ProfilePostPage() {
                 }
 
                 setPost(foundPost);
-                setLikeCount(foundPost.likes);
+                setLikeCount(loadedLikeCount);
+                setLiked(likedByMe);
                 setCommentCount(loadedCommentCount);
             } catch (error) {
                 console.error("Could not load post:", error);
@@ -96,12 +111,36 @@ export default function ProfilePostPage() {
         };
     }, [postId]);
 
-    function toggleLike() {
+    async function toggleLike() {
+        if (!post || likeActionInFlight) {
+            return;
+        }
+
+        const wasLiked = liked;
+
+        setLiked(!wasLiked);
         setLikeCount((count) =>
-            liked ? Math.max(0, count - 1) : count + 1
+            wasLiked ? Math.max(0, count - 1) : count + 1
         );
 
-        setLiked((current) => !current);
+        setLikeActionInFlight(true);
+
+        try {
+            if (wasLiked) {
+                await unlikePost(post.id);
+            } else {
+                await likePost(post.id);
+            }
+        } catch (error) {
+            console.error("Could not update like:", error);
+
+            setLiked(wasLiked);
+            setLikeCount((count) =>
+                wasLiked ? count + 1 : Math.max(0, count - 1)
+            );
+        } finally {
+            setLikeActionInFlight(false);
+        }
     }
 
     async function toggleMusic() {
@@ -451,8 +490,9 @@ export default function ProfilePostPage() {
 
                     <div className="mt-3 flex items-center gap-4">
                         <button
-                            onClick={toggleLike}
-                            className="flex items-center gap-1.5"
+                            onClick={() => void toggleLike()}
+                            disabled={likeActionInFlight}
+                            className="flex items-center gap-1.5 disabled:opacity-60"
                         >
                             <Heart
                                 size={18}
