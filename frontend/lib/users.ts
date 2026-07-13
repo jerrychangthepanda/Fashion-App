@@ -115,6 +115,35 @@ export async function getMyProfile(): Promise<Profile | null> {
     };
 }
 
+export async function getProfileByUsername(
+    username: string
+): Promise<Profile | null> {
+    const { data, error } = await supabase
+        .from("profiles")
+        .select("id, username, bio, profile_picture_url")
+        .eq("username", username)
+        .maybeSingle();
+
+    if (error) {
+        console.error(
+            "Failed to load profile by username:",
+            error
+        );
+        throw error;
+    }
+
+    if (!data) {
+        return null;
+    }
+
+    return {
+        id: data.id,
+        username: data.username,
+        bio: data.bio ?? "",
+        profilePictureUrl: data.profile_picture_url,
+    };
+}
+
 function extractStoragePath(publicUrl: string): string | null {
     const marker = "/object/public/profile_picture/";
     const index = publicUrl.indexOf(marker);

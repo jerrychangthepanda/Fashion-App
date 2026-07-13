@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ProfileView } from "@/components/ProfileView";
+import { supabase } from "@/lib/supabase";
 import {
     getCurrentUserPosts,
     type LocalPost,
@@ -16,6 +17,7 @@ export default function ProfilePage() {
     const [bio, setBio] = useState("Your bio will show up here");
     const [profileImage, setProfileImage] =
         useState<string | null>(null);
+    const [userId, setUserId] = useState<string | null>(null);
 
     const [posts, setPosts] = useState<LocalPost[]>([]);
     const [collections, setCollections] = useState<Collection[]>([]);
@@ -39,6 +41,34 @@ export default function ProfilePage() {
         }
 
         setCollections(getCollections());
+
+        async function loadCurrentUserId() {
+            try {
+                const {
+                    data: { user },
+                    error,
+                } = await supabase.auth.getUser();
+
+                if (error) {
+                    console.error(
+                        "Could not load the current user:",
+                        error
+                    );
+                    return;
+                }
+
+                if (!cancelled) {
+                    setUserId(user?.id ?? null);
+                }
+            } catch (error) {
+                console.error(
+                    "Could not load the current user:",
+                    error
+                );
+            }
+        }
+
+        void loadCurrentUserId();
 
         async function loadProfilePosts() {
             try {
@@ -71,6 +101,7 @@ export default function ProfilePage() {
     return (
         <ProfileView
             username={username}
+            userId={userId}
             bio={bio}
             avatarImage={profileImage}
             isOwnProfile={true}

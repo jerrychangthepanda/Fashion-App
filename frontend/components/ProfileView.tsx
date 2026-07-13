@@ -19,7 +19,19 @@ import type { LocalPost } from "@/lib/localPosts";
 import { getCollections, createCollection, type Collection } from "@/lib/collections";
 import { CollectionTile } from "@/components/CollectionTile";
 import { MOCK_FOLLOWING, MOCK_FOLLOWERS, getUsersByUsernames, type MockUser } from "@/lib/users";
-import { followUser, getFollowingUsernames, isFollowing, unfollowUser } from "@/lib/follows";
+import {
+    followUser,
+    followUserMock,
+    getFollowerCount,
+    getFollowers,
+    getFollowingCount,
+    getFollowingList,
+    getFollowingUsernamesMock,
+    isFollowing,
+    isFollowingMock,
+    unfollowUser,
+    unfollowUserMock,
+} from "@/lib/follows";
 
 function FollowListSheet({
     open,
@@ -144,6 +156,7 @@ function FollowListSheet({
 
 export function ProfileView({
     username,
+    userId = null,
     bio,
     avatarImage,
     isOwnProfile,
@@ -151,6 +164,7 @@ export function ProfileView({
     collections = [],
 }: {
     username: string;
+    userId?: string | null;
     bio: string;
     avatarImage?: string | null;
     isOwnProfile: boolean;
@@ -160,30 +174,136 @@ export function ProfileView({
 }) {
     const router = useRouter();
     const [following, setFollowing] = useState(false);
+    const [followActionInFlight, setFollowActionInFlight] =
+        useState(false);
     const [activeTab, setActiveTab] = useState<"posts" | "collections">("posts");
     const [localCollections, setLocalCollections] = useState<Collection[]>(collections);
     const [openFollowList, setOpenFollowList] = useState<"following" | "followers" | null>(null);
-    const [followingUsers, setFollowingUsers] = useState<MockUser[]>(MOCK_FOLLOWING);
-
-    const followerUsers = MOCK_FOLLOWERS;
+    const [followingListUsers, setFollowingListUsers] = useState<MockUser[]>(MOCK_FOLLOWING);
+    const [followersListUsers, setFollowersListUsers] = useState<MockUser[]>(MOCK_FOLLOWERS);
+    const [followerCount, setFollowerCount] = useState(MOCK_FOLLOWERS.length);
+    const [followingCount, setFollowingCount] = useState(MOCK_FOLLOWING.length);
 
     useEffect(() => {
-        setFollowingUsers(getUsersByUsernames(getFollowingUsernames()));
+        let cancelled = false;
 
-        if (!isOwnProfile) {
-            setFollowing(isFollowing(username));
+        async function loadRealFollowState(realUserId: string) {
+            try {
+                const [
+                    followerCountResult,
+                    followingCountResult,
+                    followersResult,
+                    followingResult,
+                ] = await Promise.all([
+                    getFollowerCount(realUserId),
+                    getFollowingCount(realUserId),
+                    getFollowers(realUserId),
+                    getFollowingList(realUserId),
+                ]);
+
+                if (cancelled) {
+                    return;
+                }
+
+                setFollowerCount(followerCountResult);
+                setFollowingCount(followingCountResult);
+                setFollowersListUsers(followersResult);
+                setFollowingListUsers(followingResult);
+            } catch (error) {
+                console.error(
+                    "Could not load follow counts:",
+                    error
+                );
+            }
+
+            if (!isOwnProfile) {
+                try {
+                    const followingByMe = await isFollowing(
+                        realUserId
+                    );
+
+                    if (!cancelled) {
+                        setFollowing(followingByMe);
+                    }
+                } catch (error) {
+                    console.error(
+                        "Could not load follow status:",
+                        error
+                    );
+                }
+            }
         }
-    }, [isOwnProfile, username]);
 
-    function handleToggleFollow() {
-        const nextFollowing = !following;
-        setFollowing(nextFollowing);
+        if (userId) {
+            void loadRealFollowState(userId);
+        } else {
+            // Mock account fallback — unchanged behavior.
+            setFollowingListUsers(
+                getUsersByUsernames(getFollowingUsernamesMock())
+            );
+            setFollowersListUsers(MOCK_FOLLOWERS);
+            setFollowerCount(MOCK_FOLLOWERS.length);
+            setFollowingCount(MOCK_FOLLOWING.length);
 
-        const success = nextFollowing ? followUser(username) : unfollowUser(username);
+            if (!isOwnProfile) {
+                setFollowing(isFollowingMock(username));
+            }
+        }
 
-        if (!success) {
-            alert("Couldn't update follow status - storage might be full.");
-            setFollowing(!nextFollowing);
+        return () => {
+            cancelled = true;
+        };
+    }, [isOwnProfile, userId, username]);
+
+    async function handleToggleFollow() {
+        if (followActionInFlight) {
+            return;
+        }
+
+        if (!userId) {
+            // Mock account — unchanged localStorage behavior.
+            const nextFollowing = !following;
+            setFollowing(nextFollowing);
+
+            const success = nextFollowing
+                ? followUserMock(username)
+                : unfollowUserMock(username);
+
+            if (!success) {
+                alert("Couldn't update follow status - storage might be full.");
+                setFollowing(!nextFollowing);
+            }
+
+            return;
+        }
+
+        const wasFollowing = following;
+
+        setFollowing(!wasFollowing);
+        setFollowerCount((count) =>
+            wasFollowing ? Math.max(0, count - 1) : count + 1
+        );
+
+        setFollowActionInFlight(true);
+
+        try {
+            if (wasFollowing) {
+                await unfollowUser(userId);
+            } else {
+                await followUser(userId);
+            }
+        } catch (error) {
+            console.error(
+                "Could not update follow status:",
+                error
+            );
+
+            setFollowing(wasFollowing);
+            setFollowerCount((count) =>
+                wasFollowing ? count + 1 : Math.max(0, count - 1)
+            );
+        } finally {
+            setFollowActionInFlight(false);
         }
     }
 
@@ -255,8 +375,9 @@ export function ProfileView({
                     </Link>
                 ) : (
                     <button
-                        onClick={handleToggleFollow}
-                        className={`mt-4 rounded-full px-5 py-2 text-sm font-medium ${following
+                        onClick={() => void handleToggleFollow()}
+                        disabled={followActionInFlight}
+                        className={`mt-4 rounded-full px-5 py-2 text-sm font-medium disabled:opacity-60 ${following
                                 ? "bg-neutral-100 text-neutral-700"
                                 : "bg-neutral-900 text-white"
                             }`}
@@ -271,7 +392,7 @@ export function ProfileView({
                         className="border-r border-neutral-100 px-4 py-3 text-center"
                     >
                         <p className="text-base font-semibold text-neutral-900">
-                            {followingUsers.length}
+                            {followingCount}
                         </p>
                         <p className="text-xs font-medium text-neutral-500">
                             Following
@@ -283,7 +404,7 @@ export function ProfileView({
                         className="px-4 py-3 text-center"
                     >
                         <p className="text-base font-semibold text-neutral-900">
-                            {followerUsers.length}
+                            {followerCount}
                         </p>
                         <p className="text-xs font-medium text-neutral-500">
                             Followers
@@ -392,14 +513,14 @@ export function ProfileView({
             <FollowListSheet
                 open={openFollowList === "following"}
                 title="Following"
-                users={followingUsers}
+                users={followingListUsers}
                 onClose={() => setOpenFollowList(null)}
             />
 
             <FollowListSheet
                 open={openFollowList === "followers"}
                 title="Followers"
-                users={followerUsers}
+                users={followersListUsers}
                 onClose={() => setOpenFollowList(null)}
             />
         </main>
