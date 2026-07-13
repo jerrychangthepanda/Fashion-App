@@ -38,14 +38,10 @@ export function PostCard({
     const [currentUserId, setCurrentUserId] =
         useState<string | null>(null);
 
-    const [profileImage, setProfileImage] =
-        useState<string | null>(null);
-
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
         setCurrentUserId(localStorage.getItem("userId"));
-        setProfileImage(localStorage.getItem("profileImage"));
     }, []);
 
     useEffect(() => {
@@ -116,9 +112,9 @@ export function PostCard({
                     className="flex items-center gap-2"
                 >
                     <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
-                        {isOwnPost && profileImage ? (
+                        {post.profilePictureUrl ? (
                             <img
-                                src={profileImage}
+                                src={post.profilePictureUrl}
                                 alt="Profile"
                                 className="h-full w-full object-cover"
                             />

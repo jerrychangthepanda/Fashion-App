@@ -317,11 +317,19 @@ export default function ProfilePostPage() {
                         href="/profile"
                         className="flex items-center gap-2"
                     >
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-100">
-                            <User
-                                size={16}
-                                className="text-neutral-400"
-                            />
+                        <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
+                            {post.profilePictureUrl ? (
+                                <img
+                                    src={post.profilePictureUrl}
+                                    alt="Profile"
+                                    className="h-full w-full object-cover"
+                                />
+                            ) : (
+                                <User
+                                    size={16}
+                                    className="text-neutral-400"
+                                />
+                            )}
                         </div>
 
                         <div>

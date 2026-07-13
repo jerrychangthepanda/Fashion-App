@@ -13,6 +13,7 @@ export type LocalPost = Post & {
     imageUrl?: string;
     music?: MusicTrack;
     userId: string;
+    profilePictureUrl?: string | null;
 };
 
 export type CreatePostInput = {
@@ -30,7 +31,10 @@ type PostRow = {
     image_url: string;
     music: MusicTrack | null;
     created_at: string;
-    profiles: { username: string } | null;
+    profiles: {
+        username: string;
+        profile_picture_url: string | null;
+    } | null;
 };
 
 const POST_IMAGES_BUCKET = "post-images";
@@ -85,6 +89,7 @@ function rowToPost(row: PostRow): LocalPost {
         id: row.id,
         userId: row.user_id,
         username: row.profiles?.username ?? "user",
+        profilePictureUrl: row.profiles?.profile_picture_url ?? null,
         timeAgo: getTimeAgo(row.created_at),
         caption: row.caption,
         tags: row.tags ?? [],
@@ -108,7 +113,7 @@ async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
 export async function getPosts(): Promise<LocalPost[]> {
     const { data, error } = await supabase
         .from("posts")
-        .select("*, profiles(username)")
+        .select("*, profiles(username, profile_picture_url)")
         .order("created_at", { ascending: false });
 
     if (error) {
@@ -124,7 +129,7 @@ export async function getPostsByUser(
 ): Promise<LocalPost[]> {
     const { data, error } = await supabase
         .from("posts")
-        .select("*, profiles(username)")
+        .select("*, profiles(username, profile_picture_url)")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
@@ -159,7 +164,7 @@ export async function getPostById(
 ): Promise<LocalPost | null> {
     const { data, error } = await supabase
         .from("posts")
-        .select("*, profiles(username)")
+        .select("*, profiles(username, profile_picture_url)")
         .eq("id", postId)
         .maybeSingle();
 
@@ -223,7 +228,7 @@ export async function createPost(
             image_url: imagePath,
             music: input.music ?? null,
         })
-        .select("*, profiles(username)")
+        .select("*, profiles(username, profile_picture_url)")
         .single();
 
     if (insertError) {
