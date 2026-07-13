@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Bell, Music, Search, Tag, User, X } from "lucide-react";
 import { FeedList } from "@/components/FeedList";
 import { getPosts, type LocalPost } from "@/lib/localPosts";
+import { searchProfiles } from "@/lib/users";
 
 type SearchSelection =
     | {
@@ -57,29 +58,50 @@ export default function FeedPage() {
 
     const posts = supabasePosts;
 
+    const [profileMatches, setProfileMatches] = useState<string[]>([]);
+
+    useEffect(() => {
+        let cancelled = false;
+        const trimmedQuery = searchQuery.trim();
+
+        if (!trimmedQuery) {
+            setProfileMatches([]);
+            return;
+        }
+
+        const timeoutId = setTimeout(async () => {
+            try {
+                const results = await searchProfiles(trimmedQuery);
+
+                if (!cancelled) {
+                    setProfileMatches(
+                        results.map((profile) => profile.username)
+                    );
+                }
+            } catch (error) {
+                console.error("Could not search profiles:", error);
+
+                if (!cancelled) {
+                    setProfileMatches([]);
+                }
+            }
+        }, 250);
+
+        return () => {
+            cancelled = true;
+            clearTimeout(timeoutId);
+        };
+    }, [searchQuery]);
+
     const searchResults = useMemo(() => {
         const query = searchQuery.toLowerCase().trim();
 
         if (!query) {
             return {
-                profiles: [],
                 brands: [],
                 music: [],
             };
         }
-
-        // Real cross-user profile search isn't wired up yet — this only
-        // matches your own signed-in username for now.
-        const savedUsername =
-            typeof window !== "undefined"
-                ? localStorage.getItem("username")
-                : null;
-
-        const matchingProfiles =
-            savedUsername &&
-                savedUsername.toLowerCase().includes(query)
-                ? [savedUsername]
-                : [];
 
         const brandMap = new Map<string, string>();
         const musicMap = new Map<string, string>();
@@ -104,7 +126,6 @@ export default function FeedPage() {
         });
 
         return {
-            profiles: matchingProfiles,
             brands: Array.from(brandMap.values()),
             music: Array.from(musicMap.values()),
         };
@@ -150,7 +171,7 @@ export default function FeedPage() {
     }, [posts, selectedSearch]);
 
     const hasSearchResults =
-        searchResults.profiles.length > 0 ||
+        profileMatches.length > 0 ||
         searchResults.brands.length > 0 ||
         searchResults.music.length > 0;
 
@@ -229,14 +250,14 @@ export default function FeedPage() {
                 <div className="divide-y divide-neutral-100">
                     {hasSearchResults ? (
                         <>
-                            {searchResults.profiles.length > 0 && (
+                            {profileMatches.length > 0 && (
                                 <section className="px-4 py-3">
                                     <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">
                                         Profiles
                                     </p>
 
                                     <div className="space-y-1">
-                                        {searchResults.profiles.map(
+                                        {profileMatches.map(
                                             (username) => (
                                                 <Link
                                                     key={username}

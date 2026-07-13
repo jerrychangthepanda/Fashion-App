@@ -62,6 +62,37 @@ export async function getProfileByUsername(
     };
 }
 
+// Case-insensitive partial match on username, capped to a handful of
+// results. Backed by the "Profiles are viewable by everyone" RLS
+// policy (SELECT true), so this works for any signed-in user.
+export async function searchProfiles(
+    query: string
+): Promise<Profile[]> {
+    const trimmed = query.trim();
+
+    if (!trimmed) {
+        return [];
+    }
+
+    const { data, error } = await supabase
+        .from("profiles")
+        .select("id, username, bio, profile_picture_url")
+        .ilike("username", `%${trimmed}%`)
+        .limit(10);
+
+    if (error) {
+        console.error("Failed to search profiles:", error);
+        throw error;
+    }
+
+    return (data ?? []).map((row) => ({
+        id: row.id,
+        username: row.username,
+        bio: row.bio ?? "",
+        profilePictureUrl: row.profile_picture_url,
+    }));
+}
+
 function extractStoragePath(publicUrl: string): string | null {
     const marker = "/object/public/profile_picture/";
     const index = publicUrl.indexOf(marker);
