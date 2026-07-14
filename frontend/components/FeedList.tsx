@@ -14,6 +14,12 @@ export function FeedList({
     const [hiddenPostIds, setHiddenPostIds] = useState<string[]>([]);
     const [deletingPostIds, setDeletingPostIds] = useState<string[]>([]);
 
+    // The id of the one post allowed to be playing audio right now.
+    // Only one post's music should ever play at a time.
+    const [activeAudioPostId, setActiveAudioPostId] = useState<
+        string | null
+    >(null);
+
     const visiblePosts = posts.filter(
         (post) => !hiddenPostIds.includes(post.id)
     );
@@ -66,6 +72,15 @@ export function FeedList({
                 <PostCard
                     key={post.id}
                     post={post}
+                    isAudioActive={activeAudioPostId === post.id}
+                    onRequestAudioActive={() =>
+                        setActiveAudioPostId(post.id)
+                    }
+                    onAudioStopped={() =>
+                        setActiveAudioPostId((current) =>
+                            current === post.id ? null : current
+                        )
+                    }
                     onHide={() =>
                         setHiddenPostIds((ids) => [
                             ...ids,

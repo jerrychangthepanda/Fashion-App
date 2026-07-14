@@ -27,10 +27,24 @@ export function PostCard({
     post,
     onHide,
     onDelete,
+    // These three coordinate "only one post plays audio at a time"
+    // across the whole feed. The parent (FeedList) tracks a single
+    // active post id: isAudioActive tells this card whether IT is the
+    // one allowed to be playing right now, onRequestAudioActive is how
+    // this card asks to become that one (pausing whichever card was
+    // previously active), and onAudioStopped tells the parent this
+    // card is no longer playing so the "active" slot can be freed.
+    // Defaults keep PostCard usable on its own outside a feed list.
+    isAudioActive = true,
+    onRequestAudioActive = () => {},
+    onAudioStopped = () => {},
 }: {
     post: LocalPost;
     onHide: () => void;
     onDelete?: () => void;
+    isAudioActive?: boolean;
+    onRequestAudioActive?: () => void;
+    onAudioStopped?: () => void;
 }) {
     const [liked, setLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(post.likes);
@@ -47,6 +61,9 @@ export function PostCard({
         useState<string | null>(null);
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    // Ref to the whole card so an IntersectionObserver can tell when
+    // it has scrolled fully out of view.
+    const cardRef = useRef<HTMLElement | null>(null);
 
     useEffect(() => {
         setCurrentUserId(localStorage.getItem("userId"));
@@ -145,6 +162,21 @@ export function PostCard({
         }
     }
 
+    // Pauses this card's audio, rewinds it to the start, and flips
+    // the icon back to muted. Used whenever playback should fully
+    // reset: the user toggles it off, another card takes over as the
+    // single "active" one, or this card scrolls out of view.
+    function resetMusic() {
+        const audio = audioRef.current;
+
+        if (audio) {
+            audio.pause();
+            audio.currentTime = 0;
+        }
+
+        setMusicPlaying(false);
+    }
+
     async function toggleMusic() {
         const audio = audioRef.current;
 
@@ -154,9 +186,12 @@ export function PostCard({
 
         try {
             if (musicPlaying) {
-                audio.pause();
-                setMusicPlaying(false);
+                resetMusic();
+                onAudioStopped();
             } else {
+                // Claim the single "active" slot first so any other
+                // card that's currently playing gets told to stop.
+                onRequestAudioActive();
                 await audio.play();
                 setMusicPlaying(true);
             }
@@ -165,8 +200,57 @@ export function PostCard({
         }
     }
 
+    // If some other post becomes the active one, this card loses
+    // isAudioActive — if it was playing, stop it.
+    useEffect(() => {
+        if (!isAudioActive && musicPlaying) {
+            resetMusic();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isAudioActive]);
+
+    // Always call the latest resetMusic/onAudioStopped from the
+    // IntersectionObserver below without having to recreate the
+    // observer on every render.
+    const stopIfPlayingRef = useRef(() => {});
+
+    useEffect(() => {
+        stopIfPlayingRef.current = () => {
+            if (musicPlaying) {
+                resetMusic();
+                onAudioStopped();
+            }
+        };
+    });
+
+    // Scrolling the post fully out of view resets its audio, same as
+    // if the user had muted it manually.
+    useEffect(() => {
+        const node = cardRef.current;
+
+        if (!node || !post.music) {
+            return;
+        }
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (!entry.isIntersecting) {
+                    stopIfPlayingRef.current();
+                }
+            },
+            { threshold: 0 }
+        );
+
+        observer.observe(node);
+
+        return () => observer.disconnect();
+    }, [post.music]);
+
     return (
-        <article className="border-b border-neutral-100 pb-4">
+        <article
+            ref={cardRef}
+            className="border-b border-neutral-100 pb-4"
+        >
             <div className="relative flex items-center justify-between px-4 py-3">
                 <Link
                     href={profileHref}
@@ -295,9 +379,10 @@ export function PostCard({
                             onPause={() =>
                                 setMusicPlaying(false)
                             }
-                            onEnded={() =>
-                                setMusicPlaying(false)
-                            }
+                            onEnded={() => {
+                                resetMusic();
+                                onAudioStopped();
+                            }}
                         />
                     </div>
                 )}
