@@ -4,6 +4,7 @@ import {
     Bookmark,
     EyeOff,
     Flag,
+    FolderMinus,
     Link2,
     Pencil,
     Trash2,
@@ -18,6 +19,8 @@ export function PostOptionsMenu({
     isOwnPost,
     onHide,
     onDelete,
+    collectionId,
+    onRemoveFromCollection,
 }: {
     open: boolean;
     onClose: () => void;
@@ -25,10 +28,22 @@ export function PostOptionsMenu({
     isOwnPost: boolean;
     onHide: () => void;
     onDelete?: () => void;
+    // When set, a post is being viewed from inside one of the
+    // current user's OWN collections — this is independent of
+    // isOwnPost, since you can save (and un-save) someone else's
+    // post to your own collection. Only pass this when the
+    // signed-in user actually owns the collection being viewed;
+    // callers are responsible for that check.
+    collectionId?: string | null;
+    onRemoveFromCollection?: () => void;
 }) {
     if (!open) {
         return null;
     }
+
+    const canRemoveFromCollection = Boolean(
+        collectionId && onRemoveFromCollection
+    );
 
     async function handleCopyLink() {
         const postUrl = `${window.location.origin}/profile/post/${post.id}`;
@@ -55,6 +70,14 @@ export function PostOptionsMenu({
 
     function handleHide() {
         onHide();
+        onClose();
+    }
+
+    function handleRemoveFromCollection() {
+        if (onRemoveFromCollection) {
+            onRemoveFromCollection();
+        }
+
         onClose();
     }
 
@@ -109,6 +132,21 @@ export function PostOptionsMenu({
                             </span>
                         </Link>
 
+                        {canRemoveFromCollection && (
+                            <button
+                                onClick={handleRemoveFromCollection}
+                                className="flex w-full items-center gap-2.5 border-b border-neutral-100 px-3.5 py-2.5 text-left"
+                            >
+                                <FolderMinus
+                                    size={16}
+                                    className="text-neutral-600"
+                                />
+                                <span className="text-sm text-neutral-900">
+                                    Remove from Collection
+                                </span>
+                            </button>
+                        )}
+
                         <button
                             onClick={handleDelete}
                             className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left"
@@ -150,6 +188,21 @@ export function PostOptionsMenu({
                                 Save to collection
                             </span>
                         </Link>
+
+                        {canRemoveFromCollection && (
+                            <button
+                                onClick={handleRemoveFromCollection}
+                                className="flex w-full items-center gap-2.5 border-b border-neutral-100 px-3.5 py-2.5 text-left"
+                            >
+                                <FolderMinus
+                                    size={16}
+                                    className="text-neutral-600"
+                                />
+                                <span className="text-sm text-neutral-900">
+                                    Remove from Collection
+                                </span>
+                            </button>
+                        )}
 
                         <button
                             onClick={handleHide}

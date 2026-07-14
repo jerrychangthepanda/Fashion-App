@@ -8,16 +8,12 @@ import {
 } from "next/navigation";
 import Link from "next/link";
 import {
-    Bookmark,
     ChevronLeft,
-    FolderMinus,
     Heart,
     Image as ImageIcon,
     MessageCircle,
     MoreHorizontal,
     Music,
-    Pencil,
-    Trash2,
     User,
     Volume2,
     VolumeX,
@@ -34,8 +30,13 @@ import {
     likePost,
     unlikePost,
 } from "@/lib/likes";
-import { togglePostInCollection } from "@/lib/collections";
+import {
+    getCollectionById,
+    removePostFromCollection,
+} from "@/lib/collections";
+import { supabase } from "@/lib/supabase";
 import { CommentsSheet } from "@/components/CommentsSheet";
+import { PostOptionsMenu } from "@/components/PostOptionsMenu";
 
 export default function ProfilePostPage() {
     const router = useRouter();
@@ -60,6 +61,20 @@ export default function ProfilePostPage() {
     const [showOptions, setShowOptions] = useState(false);
     const [musicPlaying, setMusicPlaying] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [removingFromCollection, setRemovingFromCollection] =
+        useState(false);
+
+    // Real ownership, checked fresh against Supabase auth rather than
+    // localStorage (which can go stale after switching accounts).
+    const [currentUserId, setCurrentUserId] = useState<
+        string | null
+    >(null);
+
+    // Whether the SIGNED-IN user owns the collection this post is
+    // being viewed from — independent of post ownership, since you
+    // can save someone else's post into your own collection. Only
+    // when this is true should "Remove from Collection" be offered.
+    const [isOwnCollection, setIsOwnCollection] = useState(false);
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -75,11 +90,17 @@ export default function ProfilePostPage() {
                     loadedCommentCount,
                     loadedLikeCount,
                     likedByMe,
+                    userResult,
+                    collectionResult,
                 ] = await Promise.all([
                     getPostById(postId),
                     getCommentCount(postId),
                     getLikeCount(postId),
                     isLikedByCurrentUser(postId),
+                    supabase.auth.getUser(),
+                    fromCollection
+                        ? getCollectionById(fromCollection)
+                        : Promise.resolve(null),
                 ]);
 
                 if (cancelled) {
@@ -95,6 +116,27 @@ export default function ProfilePostPage() {
                 setLikeCount(loadedLikeCount);
                 setLiked(likedByMe);
                 setCommentCount(loadedCommentCount);
+
+                if (userResult.error) {
+                    console.warn(
+                        "Could not check the current user:",
+                        userResult.error
+                    );
+                }
+
+                const signedInUserId =
+                    userResult.data.user?.id ?? null;
+
+                setCurrentUserId(signedInUserId);
+
+                setIsOwnCollection(
+                    Boolean(
+                        collectionResult &&
+                            signedInUserId &&
+                            collectionResult.userId ===
+                                signedInUserId
+                    )
+                );
             } catch (error) {
                 console.error("Could not load post:", error);
 
@@ -109,7 +151,7 @@ export default function ProfilePostPage() {
         return () => {
             cancelled = true;
         };
-    }, [postId]);
+    }, [postId, fromCollection]);
 
     async function toggleLike() {
         if (!post || likeActionInFlight) {
@@ -188,29 +230,40 @@ export default function ProfilePostPage() {
         }
     }
 
-    function handleRemoveFromCollection() {
-        if (!fromCollection) {
+    function handleHide() {
+        router.back();
+    }
+
+    async function handleRemoveFromCollection() {
+        if (!fromCollection || removingFromCollection) {
             return;
         }
 
-        const success = togglePostInCollection(
-            fromCollection,
-            postId
-        );
+        setRemovingFromCollection(true);
 
-        if (!success) {
+        try {
+            await removePostFromCollection(
+                fromCollection,
+                postId
+            );
+
+            router.push(
+                `/profile/collections/${fromCollection}`
+            );
+
+            router.refresh();
+        } catch (error) {
+            console.error(
+                "Couldn't remove the post from the collection:",
+                error
+            );
+
             alert(
                 "Couldn't remove the post from the collection."
             );
-
-            return;
+        } finally {
+            setRemovingFromCollection(false);
         }
-
-        router.push(
-            `/profile/collections/${fromCollection}`
-        );
-
-        router.refresh();
     }
 
     if (postMissing) {
@@ -256,6 +309,10 @@ export default function ProfilePostPage() {
         );
     }
 
+    const isOwnPost = Boolean(
+        currentUserId && post.userId === currentUserId
+    );
+
     return (
         <main className="min-h-screen bg-white pb-[var(--bottom-nav-height)]">
             <div className="sticky top-0 z-20 flex items-center justify-between border-b border-neutral-100 bg-white px-4 py-3">
@@ -294,59 +351,20 @@ export default function ProfilePostPage() {
                         />
                     </button>
 
-                    {showOptions && (
-                        <div className="absolute right-0 top-11 z-30 w-44 overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-black/5">
-                            <button
-                                onClick={() =>
-                                    router.push(
-                                        `/profile/post/${post.id}/edit`
-                                    )
-                                }
-                                className="flex w-full items-center gap-2 border-b border-neutral-100 px-3 py-3 text-left text-sm font-medium text-neutral-900"
-                            >
-                                <Pencil size={15} />
-                                Edit post
-                            </button>
-
-                            <button
-                                onClick={() =>
-                                    router.push(
-                                        `/profile/post/${post.id}/collections`
-                                    )
-                                }
-                                className="flex w-full items-center gap-2 border-b border-neutral-100 px-3 py-3 text-left text-sm font-medium text-neutral-900"
-                            >
-                                <Bookmark size={15} />
-                                Add to Collection
-                            </button>
-
-                            {fromCollection && (
-                                <button
-                                    onClick={
-                                        handleRemoveFromCollection
-                                    }
-                                    className="flex w-full items-center gap-2 border-b border-neutral-100 px-3 py-3 text-left text-sm font-medium text-neutral-900"
-                                >
-                                    <FolderMinus size={15} />
-                                    Remove from Collection
-                                </button>
-                            )}
-
-                            <button
-                                onClick={() =>
-                                    void handleDeletePost()
-                                }
-                                disabled={deleting}
-                                className="flex w-full items-center gap-2 px-3 py-3 text-left text-sm font-medium text-red-600 disabled:opacity-50"
-                            >
-                                <Trash2 size={15} />
-
-                                {deleting
-                                    ? "Deleting..."
-                                    : "Delete post"}
-                            </button>
-                        </div>
-                    )}
+                    <PostOptionsMenu
+                        open={showOptions}
+                        onClose={() => setShowOptions(false)}
+                        post={post}
+                        isOwnPost={isOwnPost}
+                        onHide={handleHide}
+                        onDelete={() => void handleDeletePost()}
+                        collectionId={
+                            isOwnCollection ? fromCollection : null
+                        }
+                        onRemoveFromCollection={() =>
+                            void handleRemoveFromCollection()
+                        }
+                    />
                 </div>
             </div>
 

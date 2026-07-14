@@ -7,7 +7,7 @@ import {
     Image as ImageIcon,
 } from "lucide-react";
 import {
-    getPosts,
+    getCurrentUserPosts,
     type LocalPost,
 } from "@/lib/localPosts";
 import {
@@ -36,7 +36,7 @@ export default function AddPostsToCollectionPage() {
                 const [collection, loadedPosts] =
                     await Promise.all([
                         getCollectionById(collectionId),
-                        getPosts(),
+                        getCurrentUserPosts(),
                     ]);
 
                 if (!collection) {
