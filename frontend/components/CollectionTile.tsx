@@ -1,6 +1,11 @@
 "use client";
 
-import { Check, Folder } from "lucide-react";
+import {
+    Check,
+    Folder,
+    Globe2,
+    Lock,
+} from "lucide-react";
 import type { Collection } from "@/lib/collections";
 import type { LocalPost } from "@/lib/localPosts";
 
@@ -15,32 +20,72 @@ export function CollectionTile({
     selected?: boolean;
     onClick?: () => void;
 }) {
-    const images = collection.postIds
-        .map((id) => posts.find((post) => post.id === id)?.imageUrl)
-        .filter(Boolean) as string[];
+    const imagesFromLoadedPosts = collection.postIds
+        .map(
+            (id) =>
+                posts.find((post) => post.id === id)?.imageUrl
+        )
+        .filter((url): url is string => Boolean(url));
+
+    const images = Array.from(
+        new Set([
+            ...imagesFromLoadedPosts,
+            ...collection.previewImageUrls,
+        ])
+    ).slice(0, 4);
 
     return (
-        <button onClick={onClick} className="flex flex-col items-center gap-1.5">
+        <button
+            onClick={onClick}
+            className="flex min-w-0 flex-col items-center gap-1.5"
+        >
             <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-neutral-100">
                 {images.length === 0 ? (
                     <div className="flex h-full w-full items-center justify-center">
-                        <Folder size={22} className="text-neutral-300" />
+                        <Folder
+                            size={22}
+                            className="text-neutral-300"
+                        />
                     </div>
                 ) : (
                     <div className="grid h-full w-full grid-cols-2 grid-rows-2 gap-px">
-                        {[0, 1, 2, 3].map((i) => (
-                            <div key={i} className="overflow-hidden bg-neutral-200">
-                                {images[i] && (
-                                    <img src={images[i]} alt="" className="h-full w-full object-cover" />
+                        {[0, 1, 2, 3].map((index) => (
+                            <div
+                                key={index}
+                                className="overflow-hidden bg-neutral-200"
+                            >
+                                {images[index] && (
+                                    <img
+                                        src={images[index]}
+                                        alt=""
+                                        className="h-full w-full object-cover"
+                                    />
                                 )}
                             </div>
                         ))}
                     </div>
                 )}
 
+                <div className="absolute left-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/55">
+                    {collection.isPublic ? (
+                        <Globe2
+                            size={13}
+                            className="text-white"
+                        />
+                    ) : (
+                        <Lock
+                            size={13}
+                            className="text-white"
+                        />
+                    )}
+                </div>
+
                 {selected && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                        <Check size={20} className="text-white" />
+                        <Check
+                            size={20}
+                            className="text-white"
+                        />
                     </div>
                 )}
             </div>

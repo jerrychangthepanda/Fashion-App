@@ -1,5 +1,4 @@
 import type { Post } from "@/lib/mockData";
-import { removePostFromAllCollections } from "@/lib/collections";
 import { supabase } from "@/lib/supabase";
 
 export type MusicTrack = {
@@ -89,7 +88,8 @@ function rowToPost(row: PostRow): LocalPost {
         id: row.id,
         userId: row.user_id,
         username: row.profiles?.username ?? "user",
-        profilePictureUrl: row.profiles?.profile_picture_url ?? null,
+        profilePictureUrl:
+            row.profiles?.profile_picture_url ?? null,
         timeAgo: getTimeAgo(row.created_at),
         caption: row.caption,
         tags: row.tags ?? [],
@@ -100,11 +100,15 @@ function rowToPost(row: PostRow): LocalPost {
     };
 }
 
-async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
+async function dataUrlToBlob(
+    dataUrl: string
+): Promise<Blob> {
     const response = await fetch(dataUrl);
 
     if (!response.ok) {
-        throw new Error("Could not process the captured image.");
+        throw new Error(
+            "Could not process the captured image."
+        );
     }
 
     return response.blob();
@@ -113,7 +117,9 @@ async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
 export async function getPosts(): Promise<LocalPost[]> {
     const { data, error } = await supabase
         .from("posts")
-        .select("*, profiles(username, profile_picture_url)")
+        .select(
+            "*, profiles(username, profile_picture_url)"
+        )
         .order("created_at", { ascending: false });
 
     if (error) {
@@ -124,31 +130,79 @@ export async function getPosts(): Promise<LocalPost[]> {
     return ((data ?? []) as PostRow[]).map(rowToPost);
 }
 
+export async function getPostsByIds(
+    postIds: string[]
+): Promise<LocalPost[]> {
+    const uniqueIds = Array.from(new Set(postIds));
+
+    if (uniqueIds.length === 0) {
+        return [];
+    }
+
+    const { data, error } = await supabase
+        .from("posts")
+        .select(
+            "*, profiles(username, profile_picture_url)"
+        )
+        .in("id", uniqueIds);
+
+    if (error) {
+        console.error(
+            "Failed to load collection posts:",
+            error
+        );
+        throw error;
+    }
+
+    const posts = ((data ?? []) as PostRow[]).map(
+        rowToPost
+    );
+    const postMap = new Map(
+        posts.map((post) => [post.id, post])
+    );
+
+    return postIds
+        .map((id) => postMap.get(id))
+        .filter(
+            (post): post is LocalPost => Boolean(post)
+        );
+}
+
 export async function getPostsByUser(
     userId: string
 ): Promise<LocalPost[]> {
     const { data, error } = await supabase
         .from("posts")
-        .select("*, profiles(username, profile_picture_url)")
+        .select(
+            "*, profiles(username, profile_picture_url)"
+        )
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
     if (error) {
-        console.error("Failed to load profile posts:", error);
+        console.error(
+            "Failed to load profile posts:",
+            error
+        );
         throw error;
     }
 
     return ((data ?? []) as PostRow[]).map(rowToPost);
 }
 
-export async function getCurrentUserPosts(): Promise<LocalPost[]> {
+export async function getCurrentUserPosts(): Promise<
+    LocalPost[]
+> {
     const {
         data: { user },
         error,
     } = await supabase.auth.getUser();
 
     if (error) {
-        console.error("Failed to load the current user:", error);
+        console.error(
+            "Failed to load the current user:",
+            error
+        );
         throw error;
     }
 
@@ -164,7 +218,9 @@ export async function getPostById(
 ): Promise<LocalPost | null> {
     const { data, error } = await supabase
         .from("posts")
-        .select("*, profiles(username, profile_picture_url)")
+        .select(
+            "*, profiles(username, profile_picture_url)"
+        )
         .eq("id", postId)
         .maybeSingle();
 
@@ -193,29 +249,39 @@ export async function createPost(
     }
 
     if (!user) {
-        throw new Error("You must be signed in before creating a post.");
+        throw new Error(
+            "You must be signed in before creating a post."
+        );
     }
 
-    const imageBlob = await dataUrlToBlob(input.imageDataUrl);
+    const imageBlob = await dataUrlToBlob(
+        input.imageDataUrl
+    );
 
     const extension =
         imageBlob.type === "image/png"
             ? "png"
             : imageBlob.type === "image/webp"
-                ? "webp"
-                : "jpg";
+              ? "webp"
+              : "jpg";
 
-    const imagePath = `${user.id}/${crypto.randomUUID()}.${extension}`;
+    const imagePath = `${
+        user.id
+    }/${crypto.randomUUID()}.${extension}`;
 
     const { error: uploadError } = await supabase.storage
         .from(POST_IMAGES_BUCKET)
         .upload(imagePath, imageBlob, {
-            contentType: imageBlob.type || "image/jpeg",
+            contentType:
+                imageBlob.type || "image/jpeg",
             upsert: false,
         });
 
     if (uploadError) {
-        console.error("Failed to upload image:", uploadError);
+        console.error(
+            "Failed to upload image:",
+            uploadError
+        );
         throw uploadError;
     }
 
@@ -223,12 +289,15 @@ export async function createPost(
         .from("posts")
         .insert({
             user_id: user.id,
-            caption: input.caption.trim() || "new fit",
+            caption:
+                input.caption.trim() || "new fit",
             tags: input.tags,
             image_url: imagePath,
             music: input.music ?? null,
         })
-        .select("*, profiles(username, profile_picture_url)")
+        .select(
+            "*, profiles(username, profile_picture_url)"
+        )
         .single();
 
     if (insertError) {
@@ -236,7 +305,10 @@ export async function createPost(
             .from(POST_IMAGES_BUCKET)
             .remove([imagePath]);
 
-        console.error("Failed to create post:", insertError);
+        console.error(
+            "Failed to create post:",
+            insertError
+        );
         throw insertError;
     }
 
@@ -288,18 +360,25 @@ export async function updatePost(
         .update(databaseUpdates)
         .eq("id", postId)
         .eq("user_id", user.id)
-        .select()
+        .select(
+            "*, profiles(username, profile_picture_url)"
+        )
         .single();
 
     if (error) {
-        console.error("Failed to update post:", error);
+        console.error(
+            "Failed to update post:",
+            error
+        );
         throw error;
     }
 
     return rowToPost(data as PostRow);
 }
 
-export async function deletePost(postId: string): Promise<void> {
+export async function deletePost(
+    postId: string
+): Promise<void> {
     const {
         data: { user },
         error: userError,
@@ -325,7 +404,9 @@ export async function deletePost(postId: string): Promise<void> {
     }
 
     if (existingPost.user_id !== user.id) {
-        throw new Error("You cannot delete another user's post.");
+        throw new Error(
+            "You cannot delete another user's post."
+        );
     }
 
     const { error: deleteError } = await supabase
@@ -335,13 +416,17 @@ export async function deletePost(postId: string): Promise<void> {
         .eq("user_id", user.id);
 
     if (deleteError) {
-        console.error("Failed to delete post:", deleteError);
+        console.error(
+            "Failed to delete post:",
+            deleteError
+        );
         throw deleteError;
     }
 
-    const { error: storageError } = await supabase.storage
-        .from(POST_IMAGES_BUCKET)
-        .remove([existingPost.image_url]);
+    const { error: storageError } =
+        await supabase.storage
+            .from(POST_IMAGES_BUCKET)
+            .remove([existingPost.image_url]);
 
     if (storageError) {
         console.error(
@@ -350,5 +435,6 @@ export async function deletePost(postId: string): Promise<void> {
         );
     }
 
-    removePostFromAllCollections(postId);
+    // collection_posts rows are removed automatically by the
+    // ON DELETE CASCADE foreign key in Supabase.
 }

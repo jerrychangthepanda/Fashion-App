@@ -12,20 +12,39 @@ import {
     type Collection,
 } from "@/lib/collections";
 
+function describeError(error: unknown): string {
+    if (
+        error &&
+        typeof error === "object" &&
+        "message" in error
+    ) {
+        return String(
+            (error as { message?: unknown }).message
+        );
+    }
+
+    return String(error);
+}
+
 export default function ProfilePage() {
     const [username, setUsername] = useState("Username");
-    const [bio, setBio] = useState("Your bio will show up here");
+    const [bio, setBio] = useState(
+        "Your bio will show up here"
+    );
     const [profileImage, setProfileImage] =
         useState<string | null>(null);
-    const [userId, setUserId] = useState<string | null>(null);
-
+    const [userId, setUserId] =
+        useState<string | null>(null);
     const [posts, setPosts] = useState<LocalPost[]>([]);
-    const [collections, setCollections] = useState<Collection[]>([]);
+    const [collections, setCollections] = useState<
+        Collection[]
+    >([]);
 
     useEffect(() => {
         let cancelled = false;
 
-        const savedUsername = localStorage.getItem("username");
+        const savedUsername =
+            localStorage.getItem("username");
         const savedBio = localStorage.getItem("bio");
         const savedProfileImage =
             localStorage.getItem("profileImage");
@@ -40,9 +59,7 @@ export default function ProfilePage() {
             setProfileImage(savedProfileImage);
         }
 
-        setCollections(getCollections());
-
-        async function loadCurrentUserId() {
+        async function loadCurrentUser() {
             try {
                 const {
                     data: { user },
@@ -50,42 +67,67 @@ export default function ProfilePage() {
                 } = await supabase.auth.getUser();
 
                 if (error) {
-                    console.error(
-                        "Could not load the current user:",
-                        error
-                    );
-                    return;
+                    throw error;
                 }
 
                 if (!cancelled) {
                     setUserId(user?.id ?? null);
                 }
             } catch (error) {
-                console.error(
+                console.warn(
                     "Could not load the current user:",
-                    error
+                    describeError(error)
                 );
             }
         }
 
-        void loadCurrentUserId();
-
         async function loadProfilePosts() {
             try {
-                const loadedPosts = await getCurrentUserPosts();
+                const loadedPosts =
+                    await getCurrentUserPosts();
 
                 if (!cancelled) {
                     setPosts(loadedPosts);
                 }
             } catch (error) {
-                console.error(
+                console.warn(
                     "Could not load profile posts:",
-                    error
+                    describeError(error)
                 );
+
+                if (!cancelled) {
+                    setPosts([]);
+                }
             }
         }
 
+        async function loadProfileCollections() {
+            try {
+                const loadedCollections =
+                    await getCollections();
+
+                if (!cancelled) {
+                    setCollections(
+                        loadedCollections
+                    );
+                }
+            } catch (error) {
+                console.warn(
+                    "Could not load profile collections:",
+                    describeError(error)
+                );
+
+                if (!cancelled) {
+                    setCollections([]);
+                }
+            }
+        }
+
+        // These intentionally run independently.
+        // A collection error must not block profile posts.
+        void loadCurrentUser();
         void loadProfilePosts();
+        void loadProfileCollections();
 
         return () => {
             cancelled = true;
@@ -94,7 +136,9 @@ export default function ProfilePage() {
 
     function handlePostDeleted(postId: string) {
         setPosts((currentPosts) =>
-            currentPosts.filter((post) => post.id !== postId)
+            currentPosts.filter(
+                (post) => post.id !== postId
+            )
         );
     }
 

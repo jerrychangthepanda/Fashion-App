@@ -16,7 +16,10 @@ import {
     X,
 } from "lucide-react";
 import type { LocalPost } from "@/lib/localPosts";
-import { getCollections, createCollection, type Collection } from "@/lib/collections";
+import {
+    createCollection,
+    type Collection,
+} from "@/lib/collections";
 import { CollectionTile } from "@/components/CollectionTile";
 import {
     followUser,
@@ -45,18 +48,28 @@ function FollowListSheet({
     const filteredUsers = useMemo(() => {
         const query = searchQuery.toLowerCase().trim();
 
-        if (!query) return users;
+        if (!query) {
+            return users;
+        }
 
         return users.filter((user) => {
             return (
-                user.username.toLowerCase().includes(query) ||
-                user.name.toLowerCase().includes(query) ||
-                user.bio.toLowerCase().includes(query)
+                user.username
+                    .toLowerCase()
+                    .includes(query) ||
+                user.name
+                    .toLowerCase()
+                    .includes(query) ||
+                user.bio
+                    .toLowerCase()
+                    .includes(query)
             );
         });
     }, [users, searchQuery]);
 
-    if (!open) return null;
+    if (!open) {
+        return null;
+    }
 
     return (
         <div className="fixed inset-0 z-[60] bg-black/30">
@@ -68,31 +81,51 @@ function FollowListSheet({
 
             <div className="absolute bottom-0 left-0 right-0 max-h-[80vh] rounded-t-3xl bg-white pb-6">
                 <div className="flex items-center justify-between border-b border-neutral-100 px-5 py-4">
-                    <h2 className="text-base font-semibold text-neutral-900">{title}</h2>
+                    <h2 className="text-base font-semibold text-neutral-900">
+                        {title}
+                    </h2>
 
                     <button
                         onClick={onClose}
                         aria-label="Close"
                         className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-100"
                     >
-                        <X size={17} className="text-neutral-600" />
+                        <X
+                            size={17}
+                            className="text-neutral-600"
+                        />
                     </button>
                 </div>
 
                 <div className="px-4 py-3">
                     <div className="flex items-center gap-2 rounded-full bg-neutral-100 px-4 py-2.5">
-                        <Search size={18} className="text-neutral-400" />
+                        <Search
+                            size={18}
+                            className="text-neutral-400"
+                        />
 
                         <input
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={(event) =>
+                                setSearchQuery(
+                                    event.target.value
+                                )
+                            }
                             placeholder={`Search ${title.toLowerCase()}`}
                             className="w-full bg-transparent text-sm text-neutral-900 outline-none placeholder:text-neutral-400"
                         />
 
                         {searchQuery && (
-                            <button onClick={() => setSearchQuery("")} aria-label="Clear search">
-                                <X size={16} className="text-neutral-400" />
+                            <button
+                                onClick={() =>
+                                    setSearchQuery("")
+                                }
+                                aria-label="Clear search"
+                            >
+                                <X
+                                    size={16}
+                                    className="text-neutral-400"
+                                />
                             </button>
                         )}
                     </div>
@@ -104,8 +137,10 @@ function FollowListSheet({
                             <p className="text-sm font-medium text-neutral-700">
                                 No users found
                             </p>
+
                             <p className="mt-1 text-sm text-neutral-400">
-                                Try searching another name or username.
+                                Try searching another name or
+                                username.
                             </p>
                         </div>
                     ) : (
@@ -113,19 +148,26 @@ function FollowListSheet({
                             {filteredUsers.map((user) => (
                                 <Link
                                     key={user.username}
-                                    href={`/u/${user.username}`}
+                                    href={`/u/${encodeURIComponent(
+                                        user.username
+                                    )}`}
                                     onClick={onClose}
                                     className="flex items-center gap-3 rounded-2xl px-2 py-3 hover:bg-neutral-50"
                                 >
                                     <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
                                         {user.avatarImage ? (
                                             <img
-                                                src={user.avatarImage}
+                                                src={
+                                                    user.avatarImage
+                                                }
                                                 alt={user.name}
                                                 className="h-full w-full object-cover"
                                             />
                                         ) : (
-                                            <User size={18} className="text-neutral-400" />
+                                            <User
+                                                size={18}
+                                                className="text-neutral-400"
+                                            />
                                         )}
                                     </div>
 
@@ -133,9 +175,11 @@ function FollowListSheet({
                                         <p className="truncate text-sm font-semibold text-neutral-900">
                                             {user.username}
                                         </p>
+
                                         <p className="truncate text-xs text-neutral-500">
                                             {user.name}
                                         </p>
+
                                         <p className="truncate text-xs text-neutral-400">
                                             {user.bio}
                                         </p>
@@ -169,21 +213,42 @@ export function ProfileView({
     onPostDeleted?: (postId: string) => void;
 }) {
     const router = useRouter();
+
     const [following, setFollowing] = useState(false);
-    const [followActionInFlight, setFollowActionInFlight] =
-        useState(false);
-    const [activeTab, setActiveTab] = useState<"posts" | "collections">("posts");
-    const [localCollections, setLocalCollections] = useState<Collection[]>(collections);
-    const [openFollowList, setOpenFollowList] = useState<"following" | "followers" | null>(null);
-    const [followingListUsers, setFollowingListUsers] = useState<FollowListUser[]>([]);
-    const [followersListUsers, setFollowersListUsers] = useState<FollowListUser[]>([]);
+
+    const [
+        followActionInFlight,
+        setFollowActionInFlight,
+    ] = useState(false);
+
+    const [activeTab, setActiveTab] = useState<
+        "posts" | "collections"
+    >("posts");
+
+    const [openFollowList, setOpenFollowList] = useState<
+        "following" | "followers" | null
+    >(null);
+
+    const [
+        followingListUsers,
+        setFollowingListUsers,
+    ] = useState<FollowListUser[]>([]);
+
+    const [
+        followersListUsers,
+        setFollowersListUsers,
+    ] = useState<FollowListUser[]>([]);
+
     const [followerCount, setFollowerCount] = useState(0);
-    const [followingCount, setFollowingCount] = useState(0);
+    const [followingCount, setFollowingCount] =
+        useState(0);
 
     useEffect(() => {
         let cancelled = false;
 
-        async function loadRealFollowState(realUserId: string) {
+        async function loadRealFollowState(
+            realUserId: string
+        ) {
             try {
                 const [
                     followerCountResult,
@@ -206,7 +271,7 @@ export function ProfileView({
                 setFollowersListUsers(followersResult);
                 setFollowingListUsers(followingResult);
             } catch (error) {
-                console.error(
+                console.warn(
                     "Could not load follow counts:",
                     error
                 );
@@ -214,15 +279,14 @@ export function ProfileView({
 
             if (!isOwnProfile) {
                 try {
-                    const followingByMe = await isFollowing(
-                        realUserId
-                    );
+                    const followingByMe =
+                        await isFollowing(realUserId);
 
                     if (!cancelled) {
                         setFollowing(followingByMe);
                     }
                 } catch (error) {
-                    console.error(
+                    console.warn(
                         "Could not load follow status:",
                         error
                     );
@@ -240,21 +304,18 @@ export function ProfileView({
     }, [isOwnProfile, userId]);
 
     async function handleToggleFollow() {
-        if (followActionInFlight) {
-            return;
-        }
-
-        if (!userId) {
-            // Follow button is never shown without a real target userId
-            // (see the render below), so this should be unreachable.
+        if (followActionInFlight || !userId) {
             return;
         }
 
         const wasFollowing = following;
 
         setFollowing(!wasFollowing);
+
         setFollowerCount((count) =>
-            wasFollowing ? Math.max(0, count - 1) : count + 1
+            wasFollowing
+                ? Math.max(0, count - 1)
+                : count + 1
         );
 
         setFollowActionInFlight(true);
@@ -266,35 +327,62 @@ export function ProfileView({
                 await followUser(userId);
             }
         } catch (error) {
-            console.error(
+            console.warn(
                 "Could not update follow status:",
                 error
             );
 
             setFollowing(wasFollowing);
+
             setFollowerCount((count) =>
-                wasFollowing ? count + 1 : Math.max(0, count - 1)
+                wasFollowing
+                    ? count + 1
+                    : Math.max(0, count - 1)
             );
         } finally {
             setFollowActionInFlight(false);
         }
     }
 
-    function handleCreateCollection() {
-        const name = window.prompt("Name this collection:");
-        if (!name || !name.trim()) return;
+    async function handleCreateCollection() {
+        const name = window.prompt(
+            "Name this collection:"
+        );
 
-        const newCollection = createCollection(name.trim());
-        if (!newCollection) {
-            alert("Couldn't create the collection - storage might be full.");
+        if (!name?.trim()) {
             return;
         }
 
-        router.push(`/profile/collections/${newCollection.id}/add`);
+        const isPublic = window.confirm(
+            "Make this collection public?\n\nOK = Public\nCancel = Private"
+        );
+
+        try {
+            const newCollection =
+                await createCollection(
+                    name.trim(),
+                    isPublic
+                );
+
+            router.push(
+                `/profile/collections/${newCollection.id}/add`
+            );
+        } catch (error) {
+            console.warn(
+                "Could not create collection:",
+                error
+            );
+
+            alert("Couldn't create the collection.");
+        }
     }
 
-    function handleOpenCollection(collectionId: string) {
-        router.push(`/profile/collections/${collectionId}`);
+    function handleOpenCollection(
+        collectionId: string
+    ) {
+        router.push(
+            `/profile/collections/${collectionId}`
+        );
     }
 
     return (
@@ -306,15 +394,24 @@ export function ProfileView({
                         aria-label="Back"
                         className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100"
                     >
-                        <ChevronLeft size={20} className="text-neutral-700" />
+                        <ChevronLeft
+                            size={20}
+                            className="text-neutral-700"
+                        />
                     </button>
                 ) : (
                     <div className="h-9 w-9" />
                 )}
 
                 {isOwnProfile ? (
-                    <Link href="/profile/settings" aria-label="Settings">
-                        <Settings size={22} className="text-neutral-700" />
+                    <Link
+                        href="/profile/settings"
+                        aria-label="Settings"
+                    >
+                        <Settings
+                            size={22}
+                            className="text-neutral-700"
+                        />
                     </Link>
                 ) : (
                     <div className="h-9 w-9" />
@@ -330,7 +427,10 @@ export function ProfileView({
                             className="h-full w-full object-cover"
                         />
                     ) : (
-                        <User size={30} className="text-neutral-400" />
+                        <User
+                            size={30}
+                            className="text-neutral-400"
+                        />
                     )}
                 </div>
 
@@ -338,7 +438,9 @@ export function ProfileView({
                     {username}
                 </h1>
 
-                <p className="mt-1 text-sm text-neutral-400">{bio}</p>
+                <p className="mt-1 text-sm text-neutral-400">
+                    {bio}
+                </p>
 
                 {isOwnProfile ? (
                     <Link href="/profile/edit">
@@ -348,37 +450,54 @@ export function ProfileView({
                     </Link>
                 ) : (
                     <button
-                        onClick={() => void handleToggleFollow()}
-                        disabled={followActionInFlight}
+                        onClick={() =>
+                            void handleToggleFollow()
+                        }
+                        disabled={
+                            followActionInFlight ||
+                            !userId
+                        }
                         className={`mt-4 rounded-full px-5 py-2 text-sm font-medium disabled:opacity-60 ${following
                                 ? "bg-neutral-100 text-neutral-700"
                                 : "bg-neutral-900 text-white"
                             }`}
                     >
-                        {following ? "Following" : "Follow"}
+                        {following
+                            ? "Following"
+                            : "Follow"}
                     </button>
                 )}
 
                 <div className="mt-4 grid w-full grid-cols-2 overflow-hidden rounded-2xl bg-neutral-50">
                     <button
-                        onClick={() => setOpenFollowList("following")}
+                        onClick={() =>
+                            setOpenFollowList(
+                                "following"
+                            )
+                        }
                         className="border-r border-neutral-100 px-4 py-3 text-center"
                     >
                         <p className="text-base font-semibold text-neutral-900">
                             {followingCount}
                         </p>
+
                         <p className="text-xs font-medium text-neutral-500">
                             Following
                         </p>
                     </button>
 
                     <button
-                        onClick={() => setOpenFollowList("followers")}
+                        onClick={() =>
+                            setOpenFollowList(
+                                "followers"
+                            )
+                        }
                         className="px-4 py-3 text-center"
                     >
                         <p className="text-base font-semibold text-neutral-900">
                             {followerCount}
                         </p>
+
                         <p className="text-xs font-medium text-neutral-500">
                             Followers
                         </p>
@@ -389,35 +508,47 @@ export function ProfileView({
             <div className="mt-4 border-t border-neutral-200">
                 <div className="grid grid-cols-2 border-b border-neutral-200">
                     <button
-                        onClick={() => setActiveTab("posts")}
+                        onClick={() =>
+                            setActiveTab("posts")
+                        }
                         className={`flex flex-col items-center py-3 text-xs ${activeTab === "posts"
                                 ? "border-b-2 border-neutral-950 font-medium text-neutral-950"
                                 : "text-neutral-400"
                             }`}
                     >
                         <Grid2X2 size={17} />
-                        <span className="mt-1">Posts</span>
+
+                        <span className="mt-1">
+                            Posts
+                        </span>
                     </button>
 
                     <button
-                        onClick={() => {
-                            setActiveTab("collections");
-                            setLocalCollections(getCollections());
-                        }}
-                        className={`flex flex-col items-center py-3 text-xs ${activeTab === "collections"
+                        onClick={() =>
+                            setActiveTab(
+                                "collections"
+                            )
+                        }
+                        className={`flex flex-col items-center py-3 text-xs ${activeTab ===
+                                "collections"
                                 ? "border-b-2 border-neutral-950 font-medium text-neutral-950"
                                 : "text-neutral-400"
                             }`}
                     >
                         <Images size={17} />
-                        <span className="mt-1">Collections</span>
+
+                        <span className="mt-1">
+                            Collections
+                        </span>
                     </button>
                 </div>
 
                 {activeTab === "posts" ? (
                     posts.length === 0 ? (
                         <div className="flex h-40 items-center justify-center">
-                            <p className="text-sm text-neutral-400">No posts yet</p>
+                            <p className="text-sm text-neutral-400">
+                                No posts yet
+                            </p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-3 gap-1 pt-3">
@@ -429,8 +560,13 @@ export function ProfileView({
                                 >
                                     {post.imageUrl ? (
                                         <img
-                                            src={post.imageUrl}
-                                            alt={post.caption || "Profile post"}
+                                            src={
+                                                post.imageUrl
+                                            }
+                                            alt={
+                                                post.caption ||
+                                                "Profile post"
+                                            }
                                             className="h-full w-full object-cover"
                                         />
                                     ) : (
@@ -444,57 +580,91 @@ export function ProfileView({
 
                                     {post.music && (
                                         <div className="absolute left-1 top-1 rounded-full bg-black/50 p-1">
-                                            <Music size={12} className="text-white" />
+                                            <Music
+                                                size={12}
+                                                className="text-white"
+                                            />
                                         </div>
                                     )}
                                 </Link>
                             ))}
                         </div>
                     )
-                ) : isOwnProfile ? (
-                    <div className="grid grid-cols-3 gap-4 pt-4">
-                        {localCollections.map((collection) => (
-                            <CollectionTile
-                                key={collection.id}
-                                collection={collection}
-                                posts={posts}
-                                onClick={() => handleOpenCollection(collection.id)}
-                            />
-                        ))}
-
-                        <button
-                            onClick={handleCreateCollection}
-                            className="flex flex-col items-center gap-1.5"
-                        >
-                            <div className="flex aspect-square w-full items-center justify-center rounded-xl border-2 border-dashed border-neutral-300">
-                                <Plus size={22} className="text-neutral-400" />
-                            </div>
-                            <span className="text-xs font-medium text-neutral-500">
-                                Create new
-                            </span>
-                        </button>
-                    </div>
                 ) : (
-                    <div className="flex h-40 items-center justify-center">
-                        <p className="text-sm text-neutral-400">
-                            No collections yet
-                        </p>
+                    <div className="grid grid-cols-3 gap-4 pt-4">
+                        {collections.map(
+                            (collection) => (
+                                <CollectionTile
+                                    key={
+                                        collection.id
+                                    }
+                                    collection={
+                                        collection
+                                    }
+                                    posts={posts}
+                                    onClick={() =>
+                                        handleOpenCollection(
+                                            collection.id
+                                        )
+                                    }
+                                />
+                            )
+                        )}
+
+                        {isOwnProfile && (
+                            <button
+                                onClick={() =>
+                                    void handleCreateCollection()
+                                }
+                                className="flex flex-col items-center gap-1.5"
+                            >
+                                <div className="flex aspect-square w-full items-center justify-center rounded-xl border-2 border-dashed border-neutral-300">
+                                    <Plus
+                                        size={22}
+                                        className="text-neutral-400"
+                                    />
+                                </div>
+
+                                <span className="text-xs font-medium text-neutral-500">
+                                    Create new
+                                </span>
+                            </button>
+                        )}
+
+                        {!isOwnProfile &&
+                            collections.length ===
+                            0 && (
+                                <div className="col-span-3 flex h-40 items-center justify-center">
+                                    <p className="text-sm text-neutral-400">
+                                        No public
+                                        collections yet
+                                    </p>
+                                </div>
+                            )}
                     </div>
                 )}
             </div>
 
             <FollowListSheet
-                open={openFollowList === "following"}
+                open={
+                    openFollowList === "following"
+                }
                 title="Following"
                 users={followingListUsers}
-                onClose={() => setOpenFollowList(null)}
+                onClose={() =>
+                    setOpenFollowList(null)
+                }
             />
 
             <FollowListSheet
-                open={openFollowList === "followers"}
+                open={
+                    openFollowList === "followers"
+                }
                 title="Followers"
                 users={followersListUsers}
-                onClose={() => setOpenFollowList(null)}
+                onClose={() =>
+                    setOpenFollowList(null)
+                }
             />
         </main>
     );

@@ -2,13 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Check, Image as ImageIcon } from "lucide-react";
 import {
-    getCurrentUserPosts,
+    Check,
+    Image as ImageIcon,
+} from "lucide-react";
+import {
+    getPosts,
     type LocalPost,
 } from "@/lib/localPosts";
 import {
-    getCollections,
+    getCollectionById,
     setCollectionPostIds,
 } from "@/lib/collections";
 import { BackHeader } from "@/components/BackHeader";
@@ -19,34 +22,50 @@ export default function AddPostsToCollectionPage() {
     const collectionId = params.collectionId as string;
 
     const [posts, setPosts] = useState<LocalPost[]>([]);
-    const [selectedIds, setSelectedIds] = useState<Set<string>>(
-        new Set()
-    );
+    const [selectedIds, setSelectedIds] = useState<
+        Set<string>
+    >(new Set());
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         let cancelled = false;
 
-        const collection = getCollections().find(
-            (item) => item.id === collectionId
-        );
-
-        if (collection) {
-            setSelectedIds(new Set(collection.postIds));
-        }
-
-        async function loadPosts() {
+        async function loadPage() {
             try {
-                const loadedPosts = await getCurrentUserPosts();
+                const [collection, loadedPosts] =
+                    await Promise.all([
+                        getCollectionById(collectionId),
+                        getPosts(),
+                    ]);
+
+                if (!collection) {
+                    throw new Error("Collection not found.");
+                }
 
                 if (!cancelled) {
+                    setSelectedIds(
+                        new Set(collection.postIds)
+                    );
                     setPosts(loadedPosts);
                 }
             } catch (error) {
-                console.error("Could not load posts:", error);
+                console.error(
+                    "Could not load posts:",
+                    error
+                );
+
+                if (!cancelled) {
+                    alert("Couldn't load this collection.");
+                }
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
+                }
             }
         }
 
-        void loadPosts();
+        void loadPage();
 
         return () => {
             cancelled = true;
@@ -67,35 +86,54 @@ export default function AddPostsToCollectionPage() {
         });
     }
 
-    function handleSave() {
-        const success = setCollectionPostIds(
-            collectionId,
-            Array.from(selectedIds)
-        );
-
-        if (!success) {
-            alert("Couldn't save — storage might be full.");
+    async function handleSave() {
+        if (saving) {
             return;
         }
 
-        router.push(`/profile/collections/${collectionId}`);
-        router.refresh();
+        setSaving(true);
+
+        try {
+            await setCollectionPostIds(
+                collectionId,
+                Array.from(selectedIds)
+            );
+
+            router.push(
+                `/profile/collections/${collectionId}`
+            );
+            router.refresh();
+        } catch (error) {
+            console.error(
+                "Couldn't save the collection:",
+                error
+            );
+            alert("Couldn't save the collection.");
+            setSaving(false);
+        }
     }
 
     return (
         <main className="min-h-screen bg-white px-5 pt-6 pb-[var(--bottom-nav-height)]">
             <BackHeader title="Select Posts" />
 
-            {posts.length === 0 ? (
+            {loading ? (
                 <div className="flex h-40 items-center justify-center">
                     <p className="text-sm text-neutral-400">
-                        You haven't posted anything yet
+                        Loading...
+                    </p>
+                </div>
+            ) : posts.length === 0 ? (
+                <div className="flex h-40 items-center justify-center">
+                    <p className="text-sm text-neutral-400">
+                        No posts are available
                     </p>
                 </div>
             ) : (
                 <div className="mt-6 grid grid-cols-3 gap-1">
                     {posts.map((post) => {
-                        const selected = selectedIds.has(post.id);
+                        const selected =
+                            selectedIds.has(post.id);
 
                         return (
                             <button
@@ -108,7 +146,10 @@ export default function AddPostsToCollectionPage() {
                                 {post.imageUrl ? (
                                     <img
                                         src={post.imageUrl}
-                                        alt={post.caption || "Post"}
+                                        alt={
+                                            post.caption ||
+                                            "Post"
+                                        }
                                         className="h-full w-full object-cover"
                                     />
                                 ) : (
@@ -121,10 +162,11 @@ export default function AddPostsToCollectionPage() {
                                 )}
 
                                 <div
-                                    className={`absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full border-2 ${selected
+                                    className={`absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full border-2 ${
+                                        selected
                                             ? "border-neutral-900 bg-neutral-900"
                                             : "border-white bg-black/20"
-                                        }`}
+                                    }`}
                                 >
                                     {selected && (
                                         <Check
@@ -140,10 +182,13 @@ export default function AddPostsToCollectionPage() {
             )}
 
             <button
-                onClick={handleSave}
-                className="mt-8 w-full rounded-full bg-neutral-900 px-5 py-3 text-sm font-semibold text-white"
+                onClick={() => void handleSave()}
+                disabled={saving || loading}
+                className="mt-8 w-full rounded-full bg-neutral-900 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
             >
-                Add to Collection
+                {saving
+                    ? "Saving..."
+                    : "Save Collection"}
             </button>
         </main>
     );
