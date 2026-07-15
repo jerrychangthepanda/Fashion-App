@@ -30,7 +30,16 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-neutral-100`}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-neutral-100`}
+        // Browser extensions like Grammarly inject attributes (e.g.
+        // data-gr-ext-installed) onto <body> before React hydrates,
+        // which trips React's hydration mismatch warning even though
+        // nothing about our own markup is actually wrong. This scopes
+        // the suppression to just this tag's attributes, so it won't
+        // hide a real hydration bug anywhere else in the tree.
+        suppressHydrationWarning
+      >
         <div
           className="relative mx-auto h-dvh max-w-[480px] overflow-hidden bg-white"
           style={{ transform: "translateZ(0)" }}
