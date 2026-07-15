@@ -4,28 +4,56 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Bell, ChevronLeft, Heart, MessageCircle, User } from "lucide-react";
+import {
+    Bell,
+    ChevronLeft,
+    Heart,
+    MessageCircle,
+    User,
+} from "lucide-react";
 import {
     getNotifications,
     markAllNotificationsRead,
     type AppNotification,
 } from "@/lib/notifications";
 
+function shortenedCommentBody(
+    notification: AppNotification
+): string | null {
+    const body = notification.commentBody?.trim();
+
+    if (!body) {
+        return null;
+    }
+
+    return body.length > 60
+        ? `${body.slice(0, 60)}…`
+        : body;
+}
+
 function actionText(notification: AppNotification): string {
+    const body = shortenedCommentBody(notification);
+
     if (notification.type === "like") {
         return "liked your post";
     }
 
     if (notification.type === "comment") {
-        const body = notification.commentBody?.trim();
-
         return body
-            ? `commented: "${
-                  body.length > 60
-                      ? `${body.slice(0, 60)}…`
-                      : body
-              }"`
+            ? `commented: "${body}"`
             : "commented on your post";
+    }
+
+    if (notification.type === "reply") {
+        return body
+            ? `replied: "${body}"`
+            : "replied to your comment";
+    }
+
+    if (notification.type === "comment_like") {
+        return body
+            ? `liked your comment: "${body}"`
+            : "liked your comment";
     }
 
     return "started following you";
@@ -36,7 +64,7 @@ function NotificationIcon({
 }: {
     type: AppNotification["type"];
 }) {
-    if (type === "like") {
+    if (type === "like" || type === "comment_like") {
         return (
             <Heart
                 size={12}
@@ -45,7 +73,7 @@ function NotificationIcon({
         );
     }
 
-    if (type === "comment") {
+    if (type === "comment" || type === "reply") {
         return (
             <MessageCircle
                 size={12}
@@ -90,10 +118,6 @@ export default function NotificationsPage() {
                 }
             }
 
-            // Mark everything read once it's actually been fetched —
-            // the list above already captured each notification's
-            // pre-read state, so this doesn't change what's rendered
-            // this visit, only what shows up as "new" next time.
             try {
                 await markAllNotificationsRead();
             } catch (error) {
@@ -119,9 +143,11 @@ export default function NotificationsPage() {
                     aria-label="Back"
                     className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100"
                 >
-                    <ChevronLeft size={20} className="text-neutral-700" />
+                    <ChevronLeft
+                        size={20}
+                        className="text-neutral-700"
+                    />
                 </button>
-
                 <h1 className="text-lg font-semibold text-neutral-900">
                     Notifications
                 </h1>
@@ -145,15 +171,17 @@ export default function NotificationsPage() {
             ) : notifications.length === 0 ? (
                 <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
                     <div className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100">
-                        <Bell size={26} className="text-neutral-400" />
+                        <Bell
+                            size={26}
+                            className="text-neutral-400"
+                        />
                     </div>
-
                     <h2 className="mt-4 text-base font-semibold text-neutral-900">
                         No notifications yet
                     </h2>
-
                     <p className="mt-2 max-w-xs text-sm text-neutral-400">
-                        When someone likes, comments, or follows you, it will show up here.
+                        When someone likes, comments, replies, or
+                        follows you, it will show up here.
                     </p>
                 </div>
             ) : (
@@ -161,7 +189,9 @@ export default function NotificationsPage() {
                     {notifications.map((notification) => {
                         const href =
                             notification.type === "follow"
-                                ? `/u/${notification.actorUsername}`
+                                ? `/u/${encodeURIComponent(
+                                      notification.actorUsername
+                                  )}`
                                 : notification.postId
                                   ? `/profile/post/${notification.postId}`
                                   : "/";
@@ -216,7 +246,6 @@ export default function NotificationsPage() {
                                             {actionText(notification)}
                                         </span>
                                     </p>
-
                                     <p className="mt-0.5 text-xs text-neutral-400">
                                         {notification.timeAgo}
                                     </p>

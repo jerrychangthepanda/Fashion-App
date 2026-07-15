@@ -2,15 +2,19 @@
 
 import {
     useEffect,
+    useMemo,
+    useRef,
     useState,
     type FormEvent,
 } from "react";
 import Image from "next/image";
 import {
     ChevronDown,
+    Heart,
     Send,
     Trash2,
     User,
+    X,
 } from "lucide-react";
 import {
     createComment,
@@ -19,6 +23,10 @@ import {
     getCurrentUserId,
     type PublicComment,
 } from "@/lib/comments";
+import {
+    likeComment,
+    unlikeComment,
+} from "@/lib/commentLikes";
 
 export function CommentsSheet({
     open,
@@ -35,22 +43,21 @@ export function CommentsSheet({
 }) {
     const [comments, setComments] = useState<PublicComment[]>([]);
     const [draft, setDraft] = useState("");
+    const [replyingTo, setReplyingTo] =
+        useState<PublicComment | null>(null);
     const [currentUserId, setCurrentUserId] =
         useState<string | null>(null);
-    // The compose row's own avatar — read from the same localStorage
-    // cache app/profile/page.tsx uses (set by AuthGate on sign-in and
-    // kept fresh by updateMyProfile), so it shows up instantly instead
-    // of waiting on a network round trip just to draw one icon.
     const [myAvatarUrl, setMyAvatarUrl] =
         useState<string | null>(null);
-
     const [loading, setLoading] = useState(false);
     const [hasLoaded, setHasLoaded] = useState(false);
     const [posting, setPosting] = useState(false);
     const [deletingId, setDeletingId] =
         useState<string | null>(null);
-
+    const [likeActionIds, setLikeActionIds] =
+        useState<Set<string>>(new Set());
     const [errorMessage, setErrorMessage] = useState("");
+    const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         const savedProfileImage =
@@ -114,11 +121,6 @@ export function CommentsSheet({
         };
     }, [open, postId]);
 
-    /*
-     * Update PostCard's displayed count after the comments
-     * state has finished updating. This avoids updating the
-     * parent while CommentsSheet is rendering.
-     */
     useEffect(() => {
         if (!open || !hasLoaded) {
             return;
@@ -131,6 +133,36 @@ export function CommentsSheet({
         open,
         onCommentCountChange,
     ]);
+
+    const topLevelComments = useMemo(
+        () =>
+            comments.filter(
+                (comment) => comment.parentCommentId === null
+            ),
+        [comments]
+    );
+
+    function repliesFor(commentId: string): PublicComment[] {
+        return comments
+            .filter(
+                (comment) =>
+                    comment.parentCommentId === commentId
+            )
+            .sort(
+                (a, b) =>
+                    new Date(a.createdAt).getTime() -
+                    new Date(b.createdAt).getTime()
+            );
+    }
+
+    function startReply(comment: PublicComment) {
+        setReplyingTo(comment);
+        setErrorMessage("");
+
+        window.setTimeout(() => {
+            inputRef.current?.focus();
+        }, 0);
+    }
 
     async function handleSubmit(
         event: FormEvent<HTMLFormElement>
@@ -149,21 +181,22 @@ export function CommentsSheet({
 
             const newComment = await createComment(
                 postId,
-                trimmedDraft
+                trimmedDraft,
+                replyingTo?.id ?? null
             );
 
-            setComments((currentComments) => [
-                newComment,
-                ...currentComments,
-            ]);
-
+            setComments((currentComments) =>
+                replyingTo
+                    ? [...currentComments, newComment]
+                    : [newComment, ...currentComments]
+            );
             setDraft("");
+            setReplyingTo(null);
         } catch (error) {
             console.error(
                 "Could not create comment:",
                 error
             );
-
             setErrorMessage(
                 error instanceof Error
                     ? error.message
@@ -182,20 +215,27 @@ export function CommentsSheet({
         try {
             setDeletingId(commentId);
             setErrorMessage("");
-
             await deleteComment(commentId);
 
             setComments((currentComments) =>
                 currentComments.filter(
-                    (comment) => comment.id !== commentId
+                    (comment) =>
+                        comment.id !== commentId &&
+                        comment.parentCommentId !== commentId
                 )
             );
+
+            if (
+                replyingTo?.id === commentId ||
+                replyingTo?.parentCommentId === commentId
+            ) {
+                setReplyingTo(null);
+            }
         } catch (error) {
             console.error(
                 "Could not delete comment:",
                 error
             );
-
             setErrorMessage(
                 error instanceof Error
                     ? error.message
@@ -204,6 +244,191 @@ export function CommentsSheet({
         } finally {
             setDeletingId(null);
         }
+    }
+
+    async function handleToggleLike(comment: PublicComment) {
+        if (likeActionIds.has(comment.id)) {
+            return;
+        }
+
+        const wasLiked = comment.likedByMe;
+
+        setLikeActionIds((current) => {
+            const next = new Set(current);
+            next.add(comment.id);
+            return next;
+        });
+
+        setComments((currentComments) =>
+            currentComments.map((currentComment) =>
+                currentComment.id === comment.id
+                    ? {
+                          ...currentComment,
+                          likedByMe: !wasLiked,
+                          likeCount: wasLiked
+                              ? Math.max(
+                                    0,
+                                    currentComment.likeCount - 1
+                                )
+                              : currentComment.likeCount + 1,
+                      }
+                    : currentComment
+            )
+        );
+
+        try {
+            if (wasLiked) {
+                await unlikeComment(comment.id);
+            } else {
+                await likeComment(comment.id);
+            }
+        } catch (error) {
+            console.error(
+                "Could not update comment like:",
+                error
+            );
+
+            setComments((currentComments) =>
+                currentComments.map((currentComment) =>
+                    currentComment.id === comment.id
+                        ? {
+                              ...currentComment,
+                              likedByMe: wasLiked,
+                              likeCount: wasLiked
+                                  ? currentComment.likeCount + 1
+                                  : Math.max(
+                                        0,
+                                        currentComment.likeCount - 1
+                                    ),
+                          }
+                        : currentComment
+                )
+            );
+
+            setErrorMessage(
+                error instanceof Error
+                    ? error.message
+                    : "Could not update the comment like."
+            );
+        } finally {
+            setLikeActionIds((current) => {
+                const next = new Set(current);
+                next.delete(comment.id);
+                return next;
+            });
+        }
+    }
+
+    function renderComment(
+        comment: PublicComment,
+        isReply: boolean
+    ) {
+        const isOwnComment =
+            comment.userId === currentUserId;
+        const likeInFlight = likeActionIds.has(comment.id);
+
+        return (
+            <div
+                key={comment.id}
+                className={`flex items-start gap-3 py-3 ${
+                    isReply
+                        ? "ml-11 border-l border-neutral-100 pl-3"
+                        : "border-b border-neutral-100"
+                }`}
+            >
+                <div
+                    className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100 ${
+                        isReply ? "h-7 w-7" : "h-8 w-8"
+                    }`}
+                >
+                    {comment.avatarUrl ? (
+                        <Image
+                            src={comment.avatarUrl}
+                            alt=""
+                            width={isReply ? 28 : 32}
+                            height={isReply ? 28 : 32}
+                            className="h-full w-full object-cover"
+                        />
+                    ) : (
+                        <User
+                            size={isReply ? 14 : 16}
+                            className="text-neutral-400"
+                        />
+                    )}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                        <p className="truncate text-sm font-medium text-neutral-900">
+                            {comment.username}
+                        </p>
+                        <span className="shrink-0 text-xs text-neutral-400">
+                            {comment.timeAgo}
+                        </span>
+                    </div>
+
+                    <p className="mt-0.5 break-words text-sm text-neutral-600">
+                        {comment.body}
+                    </p>
+
+                    {!isReply && (
+                        <button
+                            type="button"
+                            onClick={() => startReply(comment)}
+                            className="mt-1 text-xs font-medium text-neutral-500"
+                        >
+                            Reply
+                        </button>
+                    )}
+                </div>
+
+                <div className="flex shrink-0 items-center gap-1">
+                    <button
+                        type="button"
+                        onClick={() =>
+                            void handleToggleLike(comment)
+                        }
+                        disabled={likeInFlight}
+                        aria-label={
+                            comment.likedByMe
+                                ? "Unlike comment"
+                                : "Like comment"
+                        }
+                        className="flex min-h-8 min-w-8 items-center justify-center gap-1 text-neutral-400 disabled:opacity-50"
+                    >
+                        <Heart
+                            size={14}
+                            className={
+                                comment.likedByMe
+                                    ? "fill-red-500 text-red-500"
+                                    : "text-neutral-400"
+                            }
+                        />
+                        {comment.likeCount > 0 && (
+                            <span className="text-xs text-neutral-500">
+                                {comment.likeCount}
+                            </span>
+                        )}
+                    </button>
+
+                    {isOwnComment && (
+                        <button
+                            type="button"
+                            onClick={() =>
+                                void handleDelete(comment.id)
+                            }
+                            disabled={
+                                deletingId === comment.id
+                            }
+                            aria-label="Delete comment"
+                            className="flex h-8 w-8 items-center justify-center text-neutral-400 disabled:opacity-40"
+                        >
+                            <Trash2 size={14} />
+                        </button>
+                    )}
+                </div>
+            </div>
+        );
     }
 
     if (!open) {
@@ -228,14 +453,12 @@ export function CommentsSheet({
 
                 <div className="flex items-center px-4 py-3">
                     <div className="h-8 w-8" />
-
                     <h2 className="flex-1 text-center text-sm font-semibold text-neutral-900">
                         Comments
                         {displayedCount > 0
                             ? ` (${displayedCount})`
                             : ""}
                     </h2>
-
                     <button
                         type="button"
                         onClick={onClose}
@@ -256,81 +479,25 @@ export function CommentsSheet({
                                 Loading comments...
                             </p>
                         </div>
-                    ) : comments.length === 0 ? (
+                    ) : topLevelComments.length === 0 ? (
                         <div className="flex h-full flex-col items-center justify-center text-center">
                             <p className="text-sm font-medium text-neutral-700">
                                 No comments yet
                             </p>
-
                             <p className="mt-1 text-sm text-neutral-400">
                                 Be the first to leave a comment.
                             </p>
                         </div>
                     ) : (
-                        comments.map((comment) => {
-                            const isOwnComment =
-                                comment.userId ===
-                                currentUserId;
-
-                            return (
-                                <div
-                                    key={comment.id}
-                                    className="flex items-start gap-3 border-b border-neutral-100 py-3"
-                                >
-                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
-                                        {comment.avatarUrl ? (
-                                            <Image
-                                                src={comment.avatarUrl}
-                                                alt=""
-                                                width={32}
-                                                height={32}
-                                                className="h-full w-full object-cover"
-                                            />
-                                        ) : (
-                                            <User
-                                                size={16}
-                                                className="text-neutral-400"
-                                            />
-                                        )}
-                                    </div>
-
-                                    <div className="min-w-0 flex-1">
-                                        <div className="flex items-center gap-2">
-                                            <p className="truncate text-sm font-medium text-neutral-900">
-                                                {comment.username}
-                                            </p>
-
-                                            <span className="shrink-0 text-xs text-neutral-400">
-                                                {comment.timeAgo}
-                                            </span>
-                                        </div>
-
-                                        <p className="mt-0.5 break-words text-sm text-neutral-600">
-                                            {comment.body}
-                                        </p>
-                                    </div>
-
-                                    {isOwnComment && (
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                void handleDelete(
-                                                    comment.id
-                                                )
-                                            }
-                                            disabled={
-                                                deletingId ===
-                                                comment.id
-                                            }
-                                            aria-label="Delete comment"
-                                            className="flex h-8 w-8 shrink-0 items-center justify-center text-neutral-400 disabled:opacity-40"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
-                                    )}
-                                </div>
-                            );
-                        })
+                        topLevelComments.map((comment) => (
+                            <div key={comment.id}>
+                                {renderComment(comment, false)}
+                                {repliesFor(comment.id).map(
+                                    (reply) =>
+                                        renderComment(reply, true)
+                                )}
+                            </div>
+                        ))
                     )}
                 </div>
 
@@ -340,52 +507,78 @@ export function CommentsSheet({
                     </p>
                 )}
 
-                <form
-                    onSubmit={handleSubmit}
-                    className="relative z-30 flex items-center gap-3 border-t border-neutral-100 bg-white px-4 py-3"
-                >
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
-                        {myAvatarUrl ? (
-                            <Image
-                                src={myAvatarUrl}
-                                alt=""
-                                width={36}
-                                height={36}
-                                className="h-full w-full object-cover"
-                            />
-                        ) : (
-                            <User
-                                size={16}
-                                className="text-neutral-400"
-                            />
-                        )}
-                    </div>
+                <div className="relative z-30 border-t border-neutral-100 bg-white">
+                    {replyingTo && (
+                        <div className="flex items-center justify-between px-16 pt-2 text-xs text-neutral-500">
+                            <span className="truncate">
+                                Replying to @{replyingTo.username}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => setReplyingTo(null)}
+                                aria-label="Cancel reply"
+                                className="ml-3 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-neutral-100"
+                            >
+                                <X size={13} />
+                            </button>
+                        </div>
+                    )}
 
-                    <input
-                        type="text"
-                        value={draft}
-                        onChange={(event) =>
-                            setDraft(event.target.value)
-                        }
-                        maxLength={500}
-                        disabled={posting}
-                        autoFocus
-                        placeholder="Add a comment..."
-                        className="min-w-0 flex-1 rounded-full bg-neutral-100 px-4 py-2.5 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 disabled:opacity-60"
-                    />
-
-                    <button
-                        type="submit"
-                        disabled={!draft.trim() || posting}
-                        aria-label="Post comment"
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-900 disabled:bg-neutral-200"
+                    <form
+                        onSubmit={handleSubmit}
+                        className="flex items-center gap-3 px-4 py-3"
                     >
-                        <Send
-                            size={15}
-                            className="text-white"
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
+                            {myAvatarUrl ? (
+                                <Image
+                                    src={myAvatarUrl}
+                                    alt=""
+                                    width={36}
+                                    height={36}
+                                    className="h-full w-full object-cover"
+                                />
+                            ) : (
+                                <User
+                                    size={16}
+                                    className="text-neutral-400"
+                                />
+                            )}
+                        </div>
+
+                        <input
+                            ref={inputRef}
+                            type="text"
+                            value={draft}
+                            onChange={(event) =>
+                                setDraft(event.target.value)
+                            }
+                            maxLength={500}
+                            disabled={posting}
+                            autoFocus
+                            placeholder={
+                                replyingTo
+                                    ? `Reply to @${replyingTo.username}...`
+                                    : "Add a comment..."
+                            }
+                            className="min-w-0 flex-1 rounded-full bg-neutral-100 px-4 py-2.5 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 disabled:opacity-60"
                         />
-                    </button>
-                </form>
+
+                        <button
+                            type="submit"
+                            disabled={
+                                posting || draft.trim().length === 0
+                            }
+                            aria-label={
+                                replyingTo
+                                    ? "Post reply"
+                                    : "Post comment"
+                            }
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-500 disabled:opacity-40"
+                        >
+                            <Send size={17} />
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     );

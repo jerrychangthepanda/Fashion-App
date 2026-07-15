@@ -2,18 +2,18 @@ import { supabase } from "@/lib/supabase";
 
 const POST_IMAGES_BUCKET = "post-images";
 
-export type NotificationType = "like" | "comment" | "follow";
+export type NotificationType =
+    | "like"
+    | "comment"
+    | "follow"
+    | "reply"
+    | "comment_like";
 
 export type AppNotification = {
     id: string;
     type: NotificationType;
     createdAt: string;
     timeAgo: string;
-    // Whether this notification had already been read as of the moment
-    // it was fetched — callers that mark notifications read right after
-    // loading should hang onto this rather than refetch, so a viewing
-    // session still visually shows "what's new" even after the read
-    // state has been persisted.
     read: boolean;
     actorUsername: string;
     actorAvatarUrl: string | null;
@@ -43,7 +43,6 @@ type NotificationRow = {
 
 function getTimeAgo(createdAt: string): string {
     const createdTime = new Date(createdAt).getTime();
-
     const seconds = Math.max(
         0,
         Math.floor((Date.now() - createdTime) / 1000)
@@ -66,7 +65,9 @@ function getTimeAgo(createdAt: string): string {
     return new Date(createdAt).toLocaleDateString();
 }
 
-function rowToNotification(row: NotificationRow): AppNotification {
+function rowToNotification(
+    row: NotificationRow
+): AppNotification {
     let postThumbnailUrl: string | null = null;
 
     if (row.post?.image_url) {
@@ -86,17 +87,14 @@ function rowToNotification(row: NotificationRow): AppNotification {
         timeAgo: getTimeAgo(row.created_at),
         read: row.read_at !== null,
         actorUsername: row.actor?.username ?? "user",
-        actorAvatarUrl: row.actor?.profile_picture_url ?? null,
+        actorAvatarUrl:
+            row.actor?.profile_picture_url ?? null,
         postId: row.post_id,
         postThumbnailUrl,
         commentBody: row.comment?.body ?? null,
     };
 }
 
-// RLS on the notifications table restricts rows to the signed-in
-// user's own (recipient_id = auth.uid()), so there's no need to filter
-// by user here — same pattern the rest of this app uses for
-// RLS-protected reads.
 export async function getNotifications(
     limit = 50
 ): Promise<AppNotification[]> {
@@ -110,9 +108,16 @@ export async function getNotifications(
             read_at,
             post_id,
             comment_id,
-            actor:profiles!notifications_actor_id_fkey ( username, profile_picture_url ),
-            post:posts ( image_url ),
-            comment:comments ( body )
+            actor:profiles!notifications_actor_id_fkey (
+                username,
+                profile_picture_url
+            ),
+            post:posts (
+                image_url
+            ),
+            comment:comments (
+                body
+            )
             `
         )
         .order("created_at", { ascending: false })
@@ -148,10 +153,7 @@ export async function getUnreadNotificationCount(): Promise<number> {
 
     const { count, error } = await supabase
         .from("notifications")
-        .select("id", {
-            count: "exact",
-            head: true,
-        })
+        .select("id", { count: "exact", head: true })
         .eq("recipient_id", user.id)
         .is("read_at", null);
 

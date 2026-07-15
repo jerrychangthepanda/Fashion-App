@@ -7,8 +7,11 @@ export type PublicComment = {
     username: string;
     avatarUrl: string | null;
     body: string;
+    parentCommentId: string | null;
     createdAt: string;
     timeAgo: string;
+    likeCount: number;
+    likedByMe: boolean;
 };
 
 type CommentRow = {
@@ -16,6 +19,7 @@ type CommentRow = {
     post_id: string;
     user_id: string;
     body: string;
+    parent_comment_id: string | null;
     created_at: string;
     profiles: {
         username: string;
@@ -23,11 +27,20 @@ type CommentRow = {
     } | null;
 };
 
+type CommentLikeRow = {
+    comment_id: string;
+    user_id: string;
+};
+
 const UUID_PATTERN =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function isSupabasePostId(postId: string): boolean {
     return UUID_PATTERN.test(postId);
+}
+
+function isUuid(value: string): boolean {
+    return UUID_PATTERN.test(value);
 }
 
 function getTimeAgo(createdAt: string): string {
@@ -59,7 +72,11 @@ function getTimeAgo(createdAt: string): string {
     return new Date(createdAt).toLocaleDateString();
 }
 
-function rowToComment(row: CommentRow): PublicComment {
+function rowToComment(
+    row: CommentRow,
+    likeCount = 0,
+    likedByMe = false
+): PublicComment {
     return {
         id: row.id,
         postId: row.post_id,
@@ -67,8 +84,11 @@ function rowToComment(row: CommentRow): PublicComment {
         username: row.profiles?.username ?? "user",
         avatarUrl: row.profiles?.profile_picture_url ?? null,
         body: row.body,
+        parentCommentId: row.parent_comment_id,
         createdAt: row.created_at,
         timeAgo: getTimeAgo(row.created_at),
+        likeCount,
+        likedByMe,
     };
 }
 
@@ -86,9 +106,7 @@ export async function getCurrentUserId(): Promise<string | null> {
     return user?.id ?? null;
 }
 
-export async function getCommentCount(
-    postId: string
-): Promise<number> {
+export async function getCommentCount(postId: string): Promise<number> {
     if (!isSupabasePostId(postId)) {
         return 0;
     }
@@ -116,39 +134,91 @@ export async function getComments(
         return [];
     }
 
-    const { data, error } = await supabase
-        .from("comments")
-        .select(
-            `
-            id,
-            post_id,
-            user_id,
-            body,
-            created_at,
-            profiles ( username, profile_picture_url )
-            `
-        )
-        .eq("post_id", postId)
-        .order("created_at", {
-            ascending: false,
-        });
+    const [commentsResult, userResult] = await Promise.all([
+        supabase
+            .from("comments")
+            .select(
+                `
+                id,
+                post_id,
+                user_id,
+                body,
+                parent_comment_id,
+                created_at,
+                profiles (
+                    username,
+                    profile_picture_url
+                )
+                `
+            )
+            .eq("post_id", postId)
+            .order("created_at", { ascending: false }),
+        supabase.auth.getUser(),
+    ]);
 
-    if (error) {
-        console.error("Failed to load comments:", error);
-        throw error;
+    if (commentsResult.error) {
+        console.error(
+            "Failed to load comments:",
+            commentsResult.error
+        );
+        throw commentsResult.error;
     }
 
-    return ((data ?? []) as unknown as CommentRow[]).map(rowToComment);
+    const rows = (commentsResult.data ?? []) as unknown as CommentRow[];
+    const commentIds = rows.map((row) => row.id);
+    const currentUserId = userResult.data.user?.id ?? null;
+
+    if (commentIds.length === 0) {
+        return [];
+    }
+
+    const { data: likeData, error: likeError } = await supabase
+        .from("comment_likes")
+        .select("comment_id, user_id")
+        .in("comment_id", commentIds);
+
+    if (likeError) {
+        console.error("Failed to load comment likes:", likeError);
+        throw likeError;
+    }
+
+    const likeRows = (likeData ?? []) as CommentLikeRow[];
+    const likeCounts = new Map<string, number>();
+    const likedByMe = new Set<string>();
+
+    for (const like of likeRows) {
+        likeCounts.set(
+            like.comment_id,
+            (likeCounts.get(like.comment_id) ?? 0) + 1
+        );
+
+        if (currentUserId && like.user_id === currentUserId) {
+            likedByMe.add(like.comment_id);
+        }
+    }
+
+    return rows.map((row) =>
+        rowToComment(
+            row,
+            likeCounts.get(row.id) ?? 0,
+            likedByMe.has(row.id)
+        )
+    );
 }
 
 export async function createComment(
     postId: string,
-    body: string
+    body: string,
+    parentCommentId: string | null = null
 ): Promise<PublicComment> {
     if (!isSupabasePostId(postId)) {
         throw new Error(
             "Comments are unavailable for this demo post."
         );
+    }
+
+    if (parentCommentId && !isUuid(parentCommentId)) {
+        throw new Error("That reply target is invalid.");
     }
 
     const trimmedBody = body.trim();
@@ -197,6 +267,7 @@ export async function createComment(
             user_id: user.id,
             username,
             body: trimmedBody,
+            parent_comment_id: parentCommentId,
         })
         .select(
             `
@@ -204,8 +275,12 @@ export async function createComment(
             post_id,
             user_id,
             body,
+            parent_comment_id,
             created_at,
-            profiles ( username, profile_picture_url )
+            profiles (
+                username,
+                profile_picture_url
+            )
             `
         )
         .single();
