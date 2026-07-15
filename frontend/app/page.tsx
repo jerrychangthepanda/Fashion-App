@@ -1,11 +1,27 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import Link from "next/link";
 import { Bell, Music, Search, Tag, User, X } from "lucide-react";
 import { FeedList } from "@/components/FeedList";
-import { getPosts, type LocalPost } from "@/lib/localPosts";
+import {
+    getPosts,
+    getPostsPage,
+    type LocalPost,
+    type PostsPageCursor,
+} from "@/lib/localPosts";
 import { searchProfiles } from "@/lib/users";
+
+// How many posts load at a time, both on first paint and each time
+// the user scrolls near the bottom — keeps the initial feed light
+// instead of fetching every post that's ever been created.
+const FEED_PAGE_SIZE = 6;
 
 type SearchSelection =
     | {
@@ -26,7 +42,26 @@ type SearchSelection =
     | null;
 
 export default function FeedPage() {
-    const [supabasePosts, setSupabasePosts] = useState<LocalPost[]>([]);
+    // The main, paginated browse feed — starts with one page and
+    // grows as the user scrolls, rather than loading every post.
+    const [posts, setPosts] = useState<LocalPost[]>([]);
+    const [hasMore, setHasMore] = useState(true);
+    const [loadingInitialPosts, setLoadingInitialPosts] =
+        useState(true);
+    const [loadingMorePosts, setLoadingMorePosts] = useState(false);
+
+    // React state updates aren't applied synchronously, so if
+    // loadMorePosts got invoked twice back-to-back (e.g. a burst of
+    // intersection callbacks) both calls could read the OLD
+    // "loadingMorePosts"/"cursor" before the first call's state
+    // change lands, and both would fetch the same page twice. These
+    // refs are updated immediately, in the same tick, so the guard
+    // and the cursor are always accurate no matter how the callback
+    // is triggered.
+    const loadMoreLockRef = useRef(false);
+    const cursorRef = useRef<PostsPageCursor | null>(null);
+    const hasMoreRef = useRef(true);
+
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedSearch, setSelectedSearch] =
         useState<SearchSelection>(null);
@@ -37,26 +72,100 @@ export default function FeedPage() {
     useEffect(() => {
         let cancelled = false;
 
-        async function loadPosts() {
+        async function loadFirstPage() {
             try {
-                const loadedPosts = await getPosts();
+                const page = await getPostsPage(
+                    null,
+                    FEED_PAGE_SIZE
+                );
 
                 if (!cancelled) {
-                    setSupabasePosts(loadedPosts);
+                    setPosts(page.posts);
+                    setHasMore(page.hasMore);
+                    cursorRef.current = page.nextCursor;
+                    hasMoreRef.current = page.hasMore;
                 }
             } catch (error) {
                 console.error("Could not load posts:", error);
+            } finally {
+                if (!cancelled) {
+                    setLoadingInitialPosts(false);
+                }
             }
         }
 
-        void loadPosts();
+        void loadFirstPage();
 
         return () => {
             cancelled = true;
         };
     }, []);
 
-    const posts = supabasePosts;
+    const loadMorePosts = useCallback(async () => {
+        if (loadMoreLockRef.current || !hasMoreRef.current) {
+            return;
+        }
+
+        loadMoreLockRef.current = true;
+        setLoadingMorePosts(true);
+
+        try {
+            const page = await getPostsPage(
+                cursorRef.current,
+                FEED_PAGE_SIZE
+            );
+
+            setPosts((current) => [...current, ...page.posts]);
+            setHasMore(page.hasMore);
+            cursorRef.current = page.nextCursor;
+            hasMoreRef.current = page.hasMore;
+        } catch (error) {
+            console.error("Could not load more posts:", error);
+        } finally {
+            loadMoreLockRef.current = false;
+            setLoadingMorePosts(false);
+        }
+    }, []);
+
+    // Search needs to look across every post (for brand/music
+    // suggestions and for showing all matches once a filter is
+    // picked), which is a different job from the paginated browse
+    // feed above. Rather than loading everything up front, fetch
+    // this full corpus lazily — only once the user actually starts
+    // searching — and cache it for the rest of the session.
+    const [searchCorpus, setSearchCorpus] = useState<
+        LocalPost[] | null
+    >(null);
+
+    useEffect(() => {
+        if (!searchQuery.trim() || searchCorpus !== null) {
+            return;
+        }
+
+        let cancelled = false;
+
+        getPosts()
+            .then((allPosts) => {
+                if (!cancelled) {
+                    setSearchCorpus(allPosts);
+                }
+            })
+            .catch((error) => {
+                console.error(
+                    "Could not load posts to search:",
+                    error
+                );
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [searchQuery, searchCorpus]);
+
+    const postsForSearch = useMemo(
+        () => searchCorpus ?? [],
+        [searchCorpus]
+    );
 
     const [profileMatches, setProfileMatches] = useState<
         { username: string; profilePictureUrl: string | null }[]
@@ -112,7 +221,7 @@ export default function FeedPage() {
         const brandMap = new Map<string, string>();
         const musicMap = new Map<string, string>();
 
-        posts.forEach((post) => {
+        postsForSearch.forEach((post) => {
             post.tags.forEach((tag) => {
                 if (tag.toLowerCase().includes(query)) {
                     brandMap.set(tag.toLowerCase(), tag);
@@ -135,21 +244,25 @@ export default function FeedPage() {
             brands: Array.from(brandMap.values()),
             music: Array.from(musicMap.values()),
         };
-    }, [posts, searchQuery]);
+    }, [postsForSearch, searchQuery]);
 
+    // A selected filter (profile/brand/music) matches against the
+    // full search corpus, not just the posts paginated into view so
+    // far — otherwise picking a filter could hide matches that
+    // simply hadn't been scrolled to yet.
     const selectedPosts = useMemo(() => {
         if (!selectedSearch) {
             return posts;
         }
 
         if (selectedSearch.type === "profile") {
-            return posts.filter(
+            return postsForSearch.filter(
                 (post) => post.username === selectedSearch.value
             );
         }
 
         if (selectedSearch.type === "brand") {
-            return posts.filter((post) =>
+            return postsForSearch.filter((post) =>
                 post.tags.some(
                     (tag) =>
                         tag.toLowerCase() ===
@@ -159,7 +272,7 @@ export default function FeedPage() {
         }
 
         if (selectedSearch.type === "music") {
-            return posts.filter((post) => {
+            return postsForSearch.filter((post) => {
                 if (!post.music) {
                     return false;
                 }
@@ -174,7 +287,7 @@ export default function FeedPage() {
         }
 
         return posts;
-    }, [posts, selectedSearch]);
+    }, [posts, postsForSearch, selectedSearch]);
 
     const hasSearchResults =
         profileMatches.length > 0 ||
@@ -401,10 +514,21 @@ export default function FeedPage() {
                         </div>
                     )}
                 </div>
-            ) : (
+            ) : selectedSearch ? (
+                // A filter is picked: selectedPosts is already the
+                // full, finite set of matches from the search corpus,
+                // so there's nothing more to page in.
                 <FeedList
                     posts={selectedPosts}
-                    searchQuery={selectedSearch?.label ?? ""}
+                    searchQuery={selectedSearch.label}
+                />
+            ) : (
+                <FeedList
+                    posts={posts}
+                    loadingInitial={loadingInitialPosts}
+                    hasMore={hasMore}
+                    loadingMore={loadingMorePosts}
+                    onLoadMore={() => void loadMorePosts()}
                 />
             )}
         </main>

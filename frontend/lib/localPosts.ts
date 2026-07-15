@@ -130,6 +130,68 @@ export async function getPosts(): Promise<LocalPost[]> {
     return ((data ?? []) as PostRow[]).map(rowToPost);
 }
 
+// A cursor into the feed's created_at/id ordering. created_at alone
+// isn't guaranteed unique (two posts can share a timestamp), so we
+// carry the id too and use it as a tiebreaker — this is standard
+// "keyset" pagination and, unlike offset-based paging, it can't skip
+// or repeat a post if new ones are created while the user scrolls.
+export type PostsPageCursor = {
+    createdAt: string;
+    id: string;
+};
+
+export type PostsPage = {
+    posts: LocalPost[];
+    nextCursor: PostsPageCursor | null;
+    hasMore: boolean;
+};
+
+export async function getPostsPage(
+    cursor: PostsPageCursor | null = null,
+    limit = 6
+): Promise<PostsPage> {
+    let query = supabase
+        .from("posts")
+        .select(
+            "*, profiles(username, profile_picture_url)"
+        )
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        // Fetch one extra row so we can tell whether there's a next
+        // page without a separate count query.
+        .limit(limit + 1);
+
+    if (cursor) {
+        query = query.or(
+            `created_at.lt."${cursor.createdAt}",and(created_at.eq."${cursor.createdAt}",id.lt."${cursor.id}")`
+        );
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+        console.error("Failed to load posts page:", error);
+        throw error;
+    }
+
+    const rows = (data ?? []) as PostRow[];
+    const hasMore = rows.length > limit;
+    const pageRows = hasMore ? rows.slice(0, limit) : rows;
+    const lastRow = pageRows[pageRows.length - 1];
+
+    return {
+        posts: pageRows.map(rowToPost),
+        nextCursor:
+            hasMore && lastRow
+                ? {
+                      createdAt: lastRow.created_at,
+                      id: lastRow.id,
+                  }
+                : null,
+        hasMore,
+    };
+}
+
 export async function getPostsByIds(
     postIds: string[]
 ): Promise<LocalPost[]> {
