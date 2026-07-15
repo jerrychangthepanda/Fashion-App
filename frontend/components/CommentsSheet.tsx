@@ -36,6 +36,12 @@ export function CommentsSheet({
     const [draft, setDraft] = useState("");
     const [currentUserId, setCurrentUserId] =
         useState<string | null>(null);
+    // The compose row's own avatar — read from the same localStorage
+    // cache app/profile/page.tsx uses (set by AuthGate on sign-in and
+    // kept fresh by updateMyProfile), so it shows up instantly instead
+    // of waiting on a network round trip just to draw one icon.
+    const [myAvatarUrl, setMyAvatarUrl] =
+        useState<string | null>(null);
 
     const [loading, setLoading] = useState(false);
     const [hasLoaded, setHasLoaded] = useState(false);
@@ -44,6 +50,15 @@ export function CommentsSheet({
         useState<string | null>(null);
 
     const [errorMessage, setErrorMessage] = useState("");
+
+    useEffect(() => {
+        const savedProfileImage =
+            localStorage.getItem("profileImage");
+
+        if (savedProfileImage) {
+            setMyAvatarUrl(savedProfileImage);
+        }
+    }, []);
 
     useEffect(() => {
         if (!open) {
@@ -326,11 +341,19 @@ export function CommentsSheet({
                     onSubmit={handleSubmit}
                     className="relative z-30 flex items-center gap-3 border-t border-neutral-100 bg-white px-4 py-3"
                 >
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-100">
-                        <User
-                            size={16}
-                            className="text-neutral-400"
-                        />
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
+                        {myAvatarUrl ? (
+                            <img
+                                src={myAvatarUrl}
+                                alt=""
+                                className="h-full w-full object-cover"
+                            />
+                        ) : (
+                            <User
+                                size={16}
+                                className="text-neutral-400"
+                            />
+                        )}
                     </div>
 
                     <input
