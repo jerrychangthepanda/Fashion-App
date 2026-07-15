@@ -17,6 +17,7 @@ import {
     type PostsPageCursor,
 } from "@/lib/localPosts";
 import { searchProfiles } from "@/lib/users";
+import { getUnreadNotificationCount } from "@/lib/notifications";
 
 // How many posts load at a time, both on first paint and each time
 // the user scrolls near the bottom — keeps the initial feed light
@@ -66,8 +67,29 @@ export default function FeedPage() {
     const [selectedSearch, setSelectedSearch] =
         useState<SearchSelection>(null);
 
-    // Change this to true if you want to test the red notification dot.
-    const [hasNewNotification] = useState(false);
+    const [hasNewNotification, setHasNewNotification] =
+        useState(false);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        getUnreadNotificationCount()
+            .then((count) => {
+                if (!cancelled) {
+                    setHasNewNotification(count > 0);
+                }
+            })
+            .catch((error) => {
+                console.error(
+                    "Could not load notification count:",
+                    error
+                );
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     useEffect(() => {
         let cancelled = false;
