@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import {
     Check,
     Image as ImageIcon,
@@ -144,13 +145,15 @@ export default function AddPostsToCollectionPage() {
                                 className="relative aspect-[4/5] overflow-hidden rounded-md bg-neutral-100"
                             >
                                 {post.imageUrl ? (
-                                    <img
+                                    <Image
                                         src={post.imageUrl}
                                         alt={
                                             post.caption ||
                                             "Post"
                                         }
-                                        className="h-full w-full object-cover"
+                                        fill
+                                        sizes="(max-width: 480px) 33vw, 160px"
+                                        className="object-cover"
                                     />
                                 ) : (
                                     <div className="flex h-full w-full items-center justify-center">

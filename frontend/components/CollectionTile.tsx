@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
     Check,
     Folder,
@@ -52,13 +53,15 @@ export function CollectionTile({
                         {[0, 1, 2, 3].map((index) => (
                             <div
                                 key={index}
-                                className="overflow-hidden bg-neutral-200"
+                                className="relative overflow-hidden bg-neutral-200"
                             >
                                 {images[index] && (
-                                    <img
+                                    <Image
                                         src={images[index]}
                                         alt=""
-                                        className="h-full w-full object-cover"
+                                        fill
+                                        sizes="80px"
+                                        className="object-cover"
                                     />
                                 )}
                             </div>

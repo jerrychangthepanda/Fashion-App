@@ -5,6 +5,7 @@ import {
     useState,
     type FormEvent,
 } from "react";
+import Image from "next/image";
 import {
     ChevronDown,
     Send,
@@ -278,9 +279,11 @@ export function CommentsSheet({
                                 >
                                     <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
                                         {comment.avatarUrl ? (
-                                            <img
+                                            <Image
                                                 src={comment.avatarUrl}
                                                 alt=""
+                                                width={32}
+                                                height={32}
                                                 className="h-full w-full object-cover"
                                             />
                                         ) : (
@@ -343,9 +346,11 @@ export function CommentsSheet({
                 >
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
                         {myAvatarUrl ? (
-                            <img
+                            <Image
                                 src={myAvatarUrl}
                                 alt=""
+                                width={36}
+                                height={36}
                                 className="h-full w-full object-cover"
                             />
                         ) : (

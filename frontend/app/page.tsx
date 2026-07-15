@@ -7,6 +7,7 @@ import {
     useRef,
     useState,
 } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { Bell, Music, Search, Tag, User, X } from "lucide-react";
 import { FeedList } from "@/components/FeedList";
@@ -407,13 +408,15 @@ export default function FeedPage() {
                                                 >
                                                     <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
                                                         {profile.profilePictureUrl ? (
-                                                            <img
+                                                            <Image
                                                                 src={
                                                                     profile.profilePictureUrl
                                                                 }
                                                                 alt={
                                                                     profile.username
                                                                 }
+                                                                width={36}
+                                                                height={36}
                                                                 className="h-full w-full object-cover"
                                                             />
                                                         ) : (

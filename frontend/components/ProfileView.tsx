@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -156,11 +157,13 @@ function FollowListSheet({
                                 >
                                     <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
                                         {user.avatarImage ? (
-                                            <img
+                                            <Image
                                                 src={
                                                     user.avatarImage
                                                 }
                                                 alt={user.name}
+                                                width={44}
+                                                height={44}
                                                 className="h-full w-full object-cover"
                                             />
                                         ) : (
@@ -421,9 +424,11 @@ export function ProfileView({
             <div className="flex flex-col items-center text-center">
                 <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
                     {avatarImage ? (
-                        <img
+                        <Image
                             src={avatarImage}
                             alt="Profile"
+                            width={80}
+                            height={80}
                             className="h-full w-full object-cover"
                         />
                     ) : (
@@ -559,7 +564,7 @@ export function ProfileView({
                                     className="relative aspect-[4/5] overflow-hidden rounded-md bg-neutral-100"
                                 >
                                     {post.imageUrl ? (
-                                        <img
+                                        <Image
                                             src={
                                                 post.imageUrl
                                             }
@@ -567,7 +572,9 @@ export function ProfileView({
                                                 post.caption ||
                                                 "Profile post"
                                             }
-                                            className="h-full w-full object-cover"
+                                            fill
+                                            sizes="(max-width: 480px) 33vw, 160px"
+                                            className="object-cover"
                                         />
                                     ) : (
                                         <div className="flex h-full w-full items-center justify-center">

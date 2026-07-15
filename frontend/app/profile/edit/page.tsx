@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { User } from "lucide-react";
 import { getMyProfile, updateMyProfile } from "@/lib/users";
 
@@ -82,9 +83,22 @@ export default function EditProfilePage() {
             <div className="mt-8 flex flex-col items-center">
                 <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
                     {profileImage ? (
-                        <img
+                        <Image
                             src={profileImage}
                             alt="Profile"
+                            width={112}
+                            height={112}
+                            // profileImage switches to a local
+                            // data: URL right after picking a new
+                            // file (instant preview before the
+                            // upload finishes) — the optimizer can't
+                            // proxy those, so skip it just for that
+                            // case. The normal remote URL (loaded
+                            // from your saved profile) still gets
+                            // fully optimized.
+                            unoptimized={profileImage.startsWith(
+                                "data:"
+                            )}
                             className="h-full w-full object-cover"
                         />
                     ) : (

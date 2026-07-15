@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { Bell, ChevronLeft, Heart, MessageCircle, User } from "lucide-react";
 import {
@@ -178,13 +179,15 @@ export default function NotificationsPage() {
                                 <div className="relative h-11 w-11 shrink-0">
                                     <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
                                         {notification.actorAvatarUrl ? (
-                                            <img
+                                            <Image
                                                 src={
                                                     notification.actorAvatarUrl
                                                 }
                                                 alt={
                                                     notification.actorUsername
                                                 }
+                                                width={44}
+                                                height={44}
                                                 className="h-full w-full object-cover"
                                             />
                                         ) : (
@@ -221,11 +224,13 @@ export default function NotificationsPage() {
 
                                 {notification.postThumbnailUrl && (
                                     <div className="h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
-                                        <img
+                                        <Image
                                             src={
                                                 notification.postThumbnailUrl
                                             }
                                             alt=""
+                                            width={44}
+                                            height={44}
                                             className="h-full w-full object-cover"
                                         />
                                     </div>

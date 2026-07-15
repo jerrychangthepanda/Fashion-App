@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import { Music, Trash2 } from "lucide-react";
 import {
     getPostById,
@@ -188,12 +189,14 @@ export default function EditPostPage() {
             <BackHeader title="Edit post" />
 
             <div className="mt-4 flex justify-center">
-                <div className="aspect-[4/5] w-full max-w-[280px] overflow-hidden rounded-2xl bg-neutral-100">
+                <div className="relative aspect-[4/5] w-full max-w-[280px] overflow-hidden rounded-2xl bg-neutral-100">
                     {post.imageUrl && (
-                        <img
+                        <Image
                             src={post.imageUrl}
                             alt="Post"
-                            className="h-full w-full object-cover"
+                            fill
+                            sizes="280px"
+                            className="object-cover"
                         />
                     )}
                 </div>
@@ -228,9 +231,11 @@ export default function EditPostPage() {
                         <div className="mb-3 flex items-center justify-between gap-3 rounded-xl bg-white p-3">
                             <div className="flex min-w-0 items-center gap-3">
                                 {selectedSong.artworkUrl && (
-                                    <img
+                                    <Image
                                         src={selectedSong.artworkUrl}
                                         alt=""
+                                        width={40}
+                                        height={40}
                                         className="h-10 w-10 rounded-lg object-cover"
                                     />
                                 )}
@@ -303,11 +308,13 @@ export default function EditPostPage() {
                                 >
                                     <div className="flex min-w-0 items-center gap-3">
                                         {song.artworkUrl && (
-                                            <img
+                                            <Image
                                                 src={
                                                     song.artworkUrl
                                                 }
                                                 alt=""
+                                                width={40}
+                                                height={40}
                                                 className="h-10 w-10 rounded-lg object-cover"
                                             />
                                         )}

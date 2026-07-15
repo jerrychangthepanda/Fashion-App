@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
     Heart,
@@ -258,9 +259,11 @@ export function PostCard({
                 >
                     <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
                         {post.profilePictureUrl ? (
-                            <img
+                            <Image
                                 src={post.profilePictureUrl}
                                 alt="Profile"
+                                width={32}
+                                height={32}
                                 className="h-full w-full object-cover"
                             />
                         ) : (
@@ -302,14 +305,16 @@ export function PostCard({
                 />
             </div>
 
-            <div className="mx-4 flex aspect-[4/5] items-center justify-center overflow-hidden rounded-2xl bg-neutral-100">
+            <div className="relative mx-4 flex aspect-[4/5] items-center justify-center overflow-hidden rounded-2xl bg-neutral-100">
                 {post.imageUrl ? (
-                    <img
+                    <Image
                         src={post.imageUrl}
                         alt={
                             post.caption || "Fashion post"
                         }
-                        className="h-full w-full object-cover"
+                        fill
+                        sizes="(max-width: 480px) 100vw, 480px"
+                        className="object-cover"
                     />
                 ) : (
                     <ImageIcon
@@ -324,11 +329,13 @@ export function PostCard({
                     <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl bg-neutral-100 px-3 py-2">
                         <div className="flex min-w-0 items-center gap-3">
                             {post.music.artworkUrl ? (
-                                <img
+                                <Image
                                     src={
                                         post.music.artworkUrl
                                     }
                                     alt=""
+                                    width={40}
+                                    height={40}
                                     className="h-10 w-10 rounded-xl object-cover"
                                 />
                             ) : (

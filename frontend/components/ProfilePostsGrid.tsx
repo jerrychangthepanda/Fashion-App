@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { MoreHorizontal, Music, Trash2 } from "lucide-react";
 import type { LocalPost } from "@/lib/localPosts";
 import { deletePost } from "@/lib/localPosts";
@@ -59,10 +60,12 @@ export function ProfilePostsGrid({
                     className="relative aspect-[4/5] overflow-hidden rounded-md bg-neutral-100"
                 >
                     {post.imageUrl ? (
-                        <img
+                        <Image
                             src={post.imageUrl}
                             alt={post.caption || "Profile post"}
-                            className="h-full w-full object-cover"
+                            fill
+                            sizes="(max-width: 480px) 33vw, 160px"
+                            className="object-cover"
                         />
                     ) : (
                         <div className="h-full w-full bg-neutral-100" />

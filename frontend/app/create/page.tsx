@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Camera, CameraOff, Music, X } from "lucide-react";
 import { createPost, type MusicTrack } from "@/lib/localPosts";
 
@@ -249,6 +250,12 @@ export default function CreatePage() {
                     />
 
                     {capturedPhoto && (
+                        // capturedPhoto is always an in-memory
+                        // data: URL from the canvas capture below —
+                        // never fetched over the network, so there's
+                        // nothing for next/image's optimizer to do
+                        // here. Plain img is the right tool.
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                             src={capturedPhoto}
                             alt="Captured"
@@ -347,11 +354,13 @@ export default function CreatePage() {
                                         >
                                             <div className="flex min-w-0 items-center gap-3">
                                                 {song.artworkUrl && (
-                                                    <img
+                                                    <Image
                                                         src={
                                                             song.artworkUrl
                                                         }
                                                         alt=""
+                                                        width={40}
+                                                        height={40}
                                                         className="h-10 w-10 rounded-lg object-cover"
                                                     />
                                                 )}
@@ -381,11 +390,13 @@ export default function CreatePage() {
                             {selectedSong && (
                                 <div className="mt-3 flex items-center gap-3 rounded-xl bg-black/30 p-3 text-sm text-white">
                                     {selectedSong.artworkUrl && (
-                                        <img
+                                        <Image
                                             src={
                                                 selectedSong.artworkUrl
                                             }
                                             alt=""
+                                            width={40}
+                                            height={40}
                                             className="h-10 w-10 rounded-lg object-cover"
                                         />
                                     )}
