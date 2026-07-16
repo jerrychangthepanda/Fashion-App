@@ -47,3 +47,34 @@ body {
 .animate-fade-in-up {
     animation: fade-in-up 0.4s ease-out both;
 }
+
+/* Instagram-style double-tap-like feedback: a big heart pops in the
+   center of the tapped image, holds briefly, then fades out. The
+   component removes itself from the DOM on animationend, so this
+   never lingers or needs a timer in JS. */
+@keyframes heart-pop {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    15% {
+        opacity: 1;
+        transform: scale(1.15);
+    }
+    30% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    75% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1.05);
+    }
+}
+
+.animate-heart-pop {
+    animation: heart-pop 0.9s ease-out forwards;
+}

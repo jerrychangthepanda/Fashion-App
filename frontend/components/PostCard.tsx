@@ -131,35 +131,72 @@ export function PostCard({
         ? "/profile"
         : `/u/${encodeURIComponent(post.username)}`;
 
-    async function toggleLike() {
+    // forceLike is used by double-tap: it should only ever land on
+    // "liked", never toggle an already-liked post back off (matches
+    // the standard double-tap-to-like convention).
+    async function toggleLike(forceLike = false) {
         if (likeActionInFlight) {
             return;
         }
 
         const wasLiked = liked;
+        const willLike = forceLike ? true : !wasLiked;
 
-        setLiked(!wasLiked);
+        if (willLike === wasLiked) {
+            return;
+        }
+
+        setLiked(willLike);
         setLikeCount((count) =>
-            wasLiked ? Math.max(0, count - 1) : count + 1
+            willLike ? count + 1 : Math.max(0, count - 1)
         );
 
         setLikeActionInFlight(true);
 
         try {
-            if (wasLiked) {
-                await unlikePost(post.id);
-            } else {
+            if (willLike) {
                 await likePost(post.id);
+            } else {
+                await unlikePost(post.id);
             }
         } catch (error) {
             console.error("Could not update like:", error);
 
             setLiked(wasLiked);
             setLikeCount((count) =>
-                wasLiked ? count + 1 : Math.max(0, count - 1)
+                willLike ? Math.max(0, count - 1) : count + 1
             );
         } finally {
             setLikeActionInFlight(false);
+        }
+    }
+
+    // Double-tap-to-like detection: compares the gap between
+    // successive taps against a manual timestamp rather than relying
+    // on the browser's synthesized "dblclick" event, since that event
+    // is historically unreliable for touch double-taps on mobile
+    // (some browsers never fire it). This works identically for mouse
+    // double-clicks and touch double-taps.
+    const lastTapRef = useRef(0);
+    const DOUBLE_TAP_WINDOW_MS = 300;
+
+    const [heartPopId, setHeartPopId] = useState<number | null>(
+        null
+    );
+
+    function handleImageTap() {
+        const now = Date.now();
+
+        if (now - lastTapRef.current < DOUBLE_TAP_WINDOW_MS) {
+            lastTapRef.current = 0;
+
+            // Always show the pop animation as feedback, even if the
+            // post was already liked — only the network call/state
+            // change is skipped in that case.
+            setHeartPopId(now);
+            void toggleLike(true);
+        } else {
+            lastTapRef.current = now;
         }
     }
 
@@ -305,7 +342,10 @@ export function PostCard({
                 />
             </div>
 
-            <div className="relative mx-4 flex aspect-[4/5] items-center justify-center overflow-hidden rounded-2xl bg-neutral-100">
+            <div
+                onClick={handleImageTap}
+                className="relative mx-4 flex aspect-[4/5] items-center justify-center overflow-hidden rounded-2xl bg-neutral-100 select-none"
+            >
                 {post.imageUrl ? (
                     <Image
                         src={post.imageUrl}
@@ -321,6 +361,21 @@ export function PostCard({
                         size={28}
                         className="text-neutral-300"
                     />
+                )}
+
+                {heartPopId !== null && (
+                    <div
+                        key={heartPopId}
+                        onAnimationEnd={() =>
+                            setHeartPopId(null)
+                        }
+                        className="pointer-events-none absolute inset-0 flex items-center justify-center"
+                    >
+                        <Heart
+                            size={92}
+                            className="animate-heart-pop fill-white text-white drop-shadow-lg"
+                        />
+                    </div>
                 )}
             </div>
 
