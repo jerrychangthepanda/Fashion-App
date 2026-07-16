@@ -107,11 +107,15 @@ export async function getFollowerCount(
 ): Promise<number> {
     const { count, error } = await supabase
         .from("follows")
-        .select("follower_id", {
-            count: "exact",
-            head: true,
-        })
-        .eq("followee_id", userId);
+        .select(
+            "follower_id, profiles!follows_follower_id_fkey!inner(deactivated_at)",
+            {
+                count: "exact",
+                head: true,
+            }
+        )
+        .eq("followee_id", userId)
+        .is("profiles.deactivated_at", null);
 
     if (error) {
         console.error("Failed to load follower count:", error);
@@ -126,11 +130,15 @@ export async function getFollowingCount(
 ): Promise<number> {
     const { count, error } = await supabase
         .from("follows")
-        .select("followee_id", {
-            count: "exact",
-            head: true,
-        })
-        .eq("follower_id", userId);
+        .select(
+            "followee_id, profiles!follows_followee_id_fkey!inner(deactivated_at)",
+            {
+                count: "exact",
+                head: true,
+            }
+        )
+        .eq("follower_id", userId)
+        .is("profiles.deactivated_at", null);
 
     if (error) {
         console.error(
@@ -157,6 +165,7 @@ type FollowProfileRow = {
         username: string;
         bio: string | null;
         profile_picture_url: string | null;
+        deactivated_at: string | null;
     } | null;
 };
 
@@ -185,9 +194,10 @@ export async function getFollowers(
     const { data, error } = await supabase
         .from("follows")
         .select(
-            "profiles!follows_follower_id_fkey(username, bio, profile_picture_url)"
+            "profiles!follows_follower_id_fkey!inner(username, bio, profile_picture_url, deactivated_at)"
         )
-        .eq("followee_id", userId);
+        .eq("followee_id", userId)
+        .is("profiles.deactivated_at", null);
 
     if (error) {
         console.error("Failed to load followers:", error);
@@ -206,9 +216,10 @@ export async function getFollowingList(
     const { data, error } = await supabase
         .from("follows")
         .select(
-            "profiles!follows_followee_id_fkey(username, bio, profile_picture_url)"
+            "profiles!follows_followee_id_fkey!inner(username, bio, profile_picture_url, deactivated_at)"
         )
-        .eq("follower_id", userId);
+        .eq("follower_id", userId)
+        .is("profiles.deactivated_at", null);
 
     if (error) {
         console.error("Failed to load following list:", error);
