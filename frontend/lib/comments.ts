@@ -9,6 +9,7 @@ export type PublicComment = {
     body: string;
     parentCommentId: string | null;
     createdAt: string;
+    updatedAt: string | null;
     timeAgo: string;
     likeCount: number;
     likedByMe: boolean;
@@ -21,6 +22,7 @@ type CommentRow = {
     body: string;
     parent_comment_id: string | null;
     created_at: string;
+    updated_at: string | null;
     profiles: {
         username: string;
         profile_picture_url: string | null;
@@ -86,6 +88,7 @@ function rowToComment(
         body: row.body,
         parentCommentId: row.parent_comment_id,
         createdAt: row.created_at,
+        updatedAt: row.updated_at,
         timeAgo: getTimeAgo(row.created_at),
         likeCount,
         likedByMe,
@@ -145,6 +148,7 @@ export async function getComments(
                 body,
                 parent_comment_id,
                 created_at,
+                updated_at,
                 profiles (
                     username,
                     profile_picture_url
@@ -277,6 +281,7 @@ export async function createComment(
             body,
             parent_comment_id,
             created_at,
+            updated_at,
             profiles (
                 username,
                 profile_picture_url
@@ -291,6 +296,59 @@ export async function createComment(
     }
 
     return rowToComment(data as unknown as CommentRow);
+}
+
+export async function updateComment(
+    commentId: string,
+    body: string
+): Promise<{ body: string; updatedAt: string }> {
+    const trimmedBody = body.trim();
+
+    if (!trimmedBody) {
+        throw new Error("Enter a comment first.");
+    }
+
+    if (trimmedBody.length > 500) {
+        throw new Error(
+            "Comments cannot be longer than 500 characters."
+        );
+    }
+
+    const {
+        data: { user },
+        error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError) {
+        throw userError;
+    }
+
+    if (!user) {
+        throw new Error("You must be signed in.");
+    }
+
+    const updatedAt = new Date().toISOString();
+
+    const { data, error } = await supabase
+        .from("comments")
+        .update({
+            body: trimmedBody,
+            updated_at: updatedAt,
+        })
+        .eq("id", commentId)
+        .eq("user_id", user.id)
+        .select("body, updated_at")
+        .single();
+
+    if (error) {
+        console.error("Failed to update comment:", error);
+        throw error;
+    }
+
+    return {
+        body: data.body,
+        updatedAt: data.updated_at,
+    };
 }
 
 export async function deleteComment(

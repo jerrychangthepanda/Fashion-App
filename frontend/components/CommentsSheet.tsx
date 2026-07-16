@@ -21,6 +21,7 @@ import {
     deleteComment,
     getComments,
     getCurrentUserId,
+    updateComment,
     type PublicComment,
 } from "@/lib/comments";
 import {
@@ -54,6 +55,10 @@ export function CommentsSheet({
     const [posting, setPosting] = useState(false);
     const [deletingId, setDeletingId] =
         useState<string | null>(null);
+    const [editingId, setEditingId] =
+        useState<string | null>(null);
+    const [editingBody, setEditingBody] = useState("");
+    const [savingEdit, setSavingEdit] = useState(false);
     const [likeActionIds, setLikeActionIds] =
         useState<Set<string>>(new Set());
     const [errorMessage, setErrorMessage] = useState("");
@@ -231,6 +236,15 @@ export function CommentsSheet({
             ) {
                 setReplyingTo(null);
             }
+
+            if (
+                editingId === commentId ||
+                comments.find(
+                    (comment) => comment.id === editingId
+                )?.parentCommentId === commentId
+            ) {
+                cancelEdit();
+            }
         } catch (error) {
             console.error(
                 "Could not delete comment:",
@@ -243,6 +257,73 @@ export function CommentsSheet({
             );
         } finally {
             setDeletingId(null);
+        }
+    }
+
+    function startEdit(comment: PublicComment) {
+        setEditingId(comment.id);
+        setEditingBody(comment.body);
+        setErrorMessage("");
+    }
+
+    function cancelEdit() {
+        setEditingId(null);
+        setEditingBody("");
+    }
+
+    async function handleSaveEdit(commentId: string) {
+        if (savingEdit) {
+            return;
+        }
+
+        const trimmed = editingBody.trim();
+
+        if (!trimmed) {
+            return;
+        }
+
+        const original = comments.find(
+            (comment) => comment.id === commentId
+        );
+
+        if (original && trimmed === original.body) {
+            cancelEdit();
+            return;
+        }
+
+        try {
+            setSavingEdit(true);
+            setErrorMessage("");
+
+            const result = await updateComment(
+                commentId,
+                trimmed
+            );
+
+            setComments((currentComments) =>
+                currentComments.map((currentComment) =>
+                    currentComment.id === commentId
+                        ? {
+                              ...currentComment,
+                              body: result.body,
+                              updatedAt: result.updatedAt,
+                          }
+                        : currentComment
+                )
+            );
+            cancelEdit();
+        } catch (error) {
+            console.error(
+                "Could not update comment:",
+                error
+            );
+            setErrorMessage(
+                error instanceof Error
+                    ? error.message
+                    : "Could not update the comment."
+            );
+        } finally {
+            setSavingEdit(false);
         }
     }
 
@@ -326,6 +407,7 @@ export function CommentsSheet({
         const isOwnComment =
             comment.userId === currentUserId;
         const likeInFlight = likeActionIds.has(comment.id);
+        const isEditing = editingId === comment.id;
 
         return (
             <div
@@ -365,20 +447,93 @@ export function CommentsSheet({
                         <span className="shrink-0 text-xs text-neutral-400">
                             {comment.timeAgo}
                         </span>
+                        {comment.updatedAt && (
+                            <span className="shrink-0 text-xs text-neutral-400">
+                                (edited)
+                            </span>
+                        )}
                     </div>
 
-                    <p className="mt-0.5 break-words text-sm text-neutral-600">
-                        {comment.body}
-                    </p>
+                    {isEditing ? (
+                        <div className="mt-1">
+                            <input
+                                type="text"
+                                value={editingBody}
+                                onChange={(event) =>
+                                    setEditingBody(
+                                        event.target.value
+                                    )
+                                }
+                                onKeyDown={(event) => {
+                                    if (event.key === "Escape") {
+                                        cancelEdit();
+                                    }
+                                }}
+                                maxLength={500}
+                                disabled={savingEdit}
+                                autoFocus
+                                className="w-full rounded-lg border border-neutral-200 px-2 py-1.5 text-sm text-neutral-900 outline-none disabled:opacity-60"
+                            />
+                            <div className="mt-1 flex items-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        void handleSaveEdit(
+                                            comment.id
+                                        )
+                                    }
+                                    disabled={
+                                        savingEdit ||
+                                        editingBody.trim()
+                                            .length === 0
+                                    }
+                                    className="text-xs font-medium text-neutral-900 disabled:opacity-40"
+                                >
+                                    {savingEdit
+                                        ? "Saving..."
+                                        : "Save"}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={cancelEdit}
+                                    disabled={savingEdit}
+                                    className="text-xs font-medium text-neutral-500 disabled:opacity-40"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="mt-0.5 break-words text-sm text-neutral-600">
+                            {comment.body}
+                        </p>
+                    )}
 
-                    {!isReply && (
-                        <button
-                            type="button"
-                            onClick={() => startReply(comment)}
-                            className="mt-1 text-xs font-medium text-neutral-500"
-                        >
-                            Reply
-                        </button>
+                    {!isEditing && (
+                        <div className="mt-1 flex items-center gap-3">
+                            {!isReply && (
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        startReply(comment)
+                                    }
+                                    className="text-xs font-medium text-neutral-500"
+                                >
+                                    Reply
+                                </button>
+                            )}
+                            {isOwnComment && (
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        startEdit(comment)
+                                    }
+                                    className="text-xs font-medium text-neutral-500"
+                                >
+                                    Edit
+                                </button>
+                            )}
+                        </div>
                     )}
                 </div>
 
@@ -418,7 +573,8 @@ export function CommentsSheet({
                                 void handleDelete(comment.id)
                             }
                             disabled={
-                                deletingId === comment.id
+                                deletingId === comment.id ||
+                                editingId === comment.id
                             }
                             aria-label="Delete comment"
                             className="flex h-8 w-8 items-center justify-center text-neutral-400 disabled:opacity-40"
