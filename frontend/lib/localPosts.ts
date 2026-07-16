@@ -118,8 +118,9 @@ export async function getPosts(): Promise<LocalPost[]> {
     const { data, error } = await supabase
         .from("posts")
         .select(
-            "*, profiles(username, profile_picture_url)"
-        )
+            "*, profiles!inner(username, profile_picture_url, deactivated_at)"
+    )
+        .is("profiles.deactivated_at", null)
         .order("created_at", { ascending: false });
 
     if (error) {
@@ -153,8 +154,9 @@ export async function getPostsPage(
     let query = supabase
         .from("posts")
         .select(
-            "*, profiles(username, profile_picture_url)"
-        )
+            "*, profiles!inner(username, profile_picture_url, deactivated_at)"
+    )
+        .is("profiles.deactivated_at", null)
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
         // Fetch one extra row so we can tell whether there's a next
@@ -204,8 +206,8 @@ export async function getPostsByIds(
     const { data, error } = await supabase
         .from("posts")
         .select(
-            "*, profiles(username, profile_picture_url)"
-        )
+            "*, profiles!inner(username, profile_picture_url, deactivated_at)")
+        .is("profiles.deactivated_at", null)
         .in("id", uniqueIds);
 
     if (error) {
@@ -236,8 +238,8 @@ export async function getPostsByUser(
     const { data, error } = await supabase
         .from("posts")
         .select(
-            "*, profiles(username, profile_picture_url)"
-        )
+            "*, profiles!inner(username, profile_picture_url, deactivated_at)")
+        .is("profiles.deactivated_at", null)
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
@@ -281,8 +283,8 @@ export async function getPostById(
     const { data, error } = await supabase
         .from("posts")
         .select(
-            "*, profiles(username, profile_picture_url)"
-        )
+            "*, profiles!inner(username, profile_picture_url, deactivated_at)")
+        .is("profiles.deactivated_at", null)
         .eq("id", postId)
         .maybeSingle();
 
@@ -358,8 +360,7 @@ export async function createPost(
             music: input.music ?? null,
         })
         .select(
-            "*, profiles(username, profile_picture_url)"
-        )
+            "*, profiles!inner(username, profile_picture_url, deactivated_at)")
         .single();
 
     if (insertError) {
@@ -423,8 +424,7 @@ export async function updatePost(
         .eq("id", postId)
         .eq("user_id", user.id)
         .select(
-            "*, profiles(username, profile_picture_url)"
-        )
+            "*, profiles!inner(username, profile_picture_url, deactivated_at)")
         .single();
 
     if (error) {

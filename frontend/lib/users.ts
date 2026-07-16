@@ -40,6 +40,7 @@ export async function getProfileByUsername(
         .from("profiles")
         .select("id, username, bio, profile_picture_url")
         .eq("username", username)
+        .is("deactivated_at", null)
         .maybeSingle();
 
     if (error) {
@@ -77,6 +78,7 @@ export async function searchProfiles(
     const { data, error } = await supabase
         .from("profiles")
         .select("id, username, bio, profile_picture_url")
+        .is("deactivated_at", null)
         .ilike("username", `%${trimmed}%`)
         .limit(10);
 

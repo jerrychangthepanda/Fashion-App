@@ -41,16 +41,46 @@ export default function LoginPage() {
                 return;
             }
         } else {
-            const { error: signInError } = await supabase.auth.signInWithPassword({
+            const {
+                data: signInData,
+                error: signInError,
+            } = await supabase.auth.signInWithPassword({
                 email: email.trim(),
                 password,
             });
 
-            setLoading(false);
             if (signInError) {
+                setLoading(false);
                 setError(signInError.message);
                 return;
             }
+
+            if (signInData.user) {
+                const { error: reactivateError } =
+                    await supabase
+                        .from("profiles")
+                        .update({
+                            deactivated_at: null,
+                        })
+                        .eq("id", signInData.user.id);
+
+                if (reactivateError) {
+                    console.error(
+                        "Failed to reactivate account:",
+                        reactivateError
+                    );
+
+                    await supabase.auth.signOut();
+
+                    setLoading(false);
+                    setError(
+                        "Your account could not be reactivated."
+                    );
+                    return;
+                }
+            }
+
+            setLoading(false);
         }
 
         router.push("/");
