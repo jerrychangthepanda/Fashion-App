@@ -31,23 +31,23 @@ export default function LanguageSettingsPage() {
     }
 
     return (
-        <main className="min-h-screen bg-white px-5 pt-6 pb-[var(--bottom-nav-height)]">
+        <main className="min-h-screen bg-white dark:bg-neutral-950 px-5 pt-6 pb-[var(--bottom-nav-height)]">
             <BackHeader title="Language" />
 
-            <div className="mt-6 overflow-hidden rounded-2xl bg-neutral-50">
+            <div className="mt-6 overflow-hidden rounded-2xl bg-neutral-50 dark:bg-neutral-900">
                 {LANGUAGES.map((lang, i) => (
                     <div key={lang}>
                         <button
                             onClick={() => selectLanguage(lang)}
-                            className="flex w-full items-center justify-between px-4 py-3 active:bg-neutral-100"
+                            className="flex w-full items-center justify-between px-4 py-3 active:bg-neutral-100 dark:active:bg-neutral-800"
                         >
-                            <span className="text-sm font-medium text-neutral-900">{lang}</span>
+                            <span className="text-sm font-medium text-neutral-900 dark:text-neutral-50">{lang}</span>
                             {selected === lang && (
-                                <Check size={18} className="text-neutral-900" />
+                                <Check size={18} className="text-neutral-900 dark:text-neutral-50" />
                             )}
                         </button>
                         {i < LANGUAGES.length - 1 && (
-                            <div className="h-px bg-neutral-200" />
+                            <div className="h-px bg-neutral-200 dark:bg-neutral-700" />
                         )}
                     </div>
                 ))}

@@ -122,13 +122,13 @@ export function FeedList({
     if (visiblePosts.length === 0) {
         return (
             <div className="px-5 py-12 text-center">
-                <p className="text-sm font-medium text-neutral-700">
+                <p className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
                     {searchQuery.trim()
                         ? "No results found"
                         : "No posts yet"}
                 </p>
 
-                <p className="mt-1 text-sm text-neutral-400">
+                <p className="mt-1 text-sm text-neutral-400 dark:text-neutral-500">
                     {searchQuery.trim()
                         ? "Try searching for another profile, brand, or song."
                         : "Create your first fit post."}
@@ -173,7 +173,7 @@ export function FeedList({
                     )}
 
                     {!hasMore && !loadingMore && (
-                        <p className="px-5 py-8 text-center text-sm text-neutral-400">
+                        <p className="px-5 py-8 text-center text-sm text-neutral-400 dark:text-neutral-500">
                             You&apos;re all caught up.
                         </p>
                     )}

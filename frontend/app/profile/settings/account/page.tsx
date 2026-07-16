@@ -286,17 +286,17 @@ export default function AccountSettingsPage() {
     const disabled = loading || busyAction !== null;
 
     return (
-        <main className="min-h-screen bg-white px-5 pt-6 pb-[var(--bottom-nav-height)]">
+        <main className="min-h-screen bg-white dark:bg-neutral-950 px-5 pt-6 pb-[var(--bottom-nav-height)]">
             <BackHeader title="My Account" />
 
-            <div className="mt-6 overflow-hidden rounded-2xl bg-neutral-50">
+            <div className="mt-6 overflow-hidden rounded-2xl bg-neutral-50 dark:bg-neutral-900">
                 <div className="flex items-center justify-between px-4 py-3">
                     <div className="min-w-0 pr-4">
-                        <p className="text-xs text-neutral-400">
+                        <p className="text-xs text-neutral-400 dark:text-neutral-500">
                             Email
                         </p>
 
-                        <p className="mt-0.5 truncate text-sm font-medium text-neutral-900">
+                        <p className="mt-0.5 truncate text-sm font-medium text-neutral-900 dark:text-neutral-50">
                             {loading ? "Loading..." : email}
                         </p>
                     </div>
@@ -304,7 +304,7 @@ export default function AccountSettingsPage() {
                     <button
                         onClick={handleChangeEmail}
                         disabled={disabled}
-                        className="shrink-0 text-sm font-medium text-neutral-500 underline disabled:opacity-40"
+                        className="shrink-0 text-sm font-medium text-neutral-500 dark:text-neutral-400 underline disabled:opacity-40"
                     >
                         {busyAction === "email"
                             ? "Saving..."
@@ -312,15 +312,15 @@ export default function AccountSettingsPage() {
                     </button>
                 </div>
 
-                <div className="h-px bg-neutral-200" />
+                <div className="h-px bg-neutral-200 dark:bg-neutral-700" />
 
                 <div className="flex items-center justify-between px-4 py-3">
                     <div className="min-w-0 pr-4">
-                        <p className="text-xs text-neutral-400">
+                        <p className="text-xs text-neutral-400 dark:text-neutral-500">
                             Phone number
                         </p>
 
-                        <p className="mt-0.5 truncate text-sm font-medium text-neutral-900">
+                        <p className="mt-0.5 truncate text-sm font-medium text-neutral-900 dark:text-neutral-50">
                             {loading
                                 ? "Loading..."
                                 : phone || PHONE_PLACEHOLDER}
@@ -330,7 +330,7 @@ export default function AccountSettingsPage() {
                     <button
                         onClick={handleChangePhone}
                         disabled={disabled}
-                        className="shrink-0 text-sm font-medium text-neutral-500 underline disabled:opacity-40"
+                        className="shrink-0 text-sm font-medium text-neutral-500 dark:text-neutral-400 underline disabled:opacity-40"
                     >
                         {busyAction === "phone"
                             ? "Saving..."
@@ -343,7 +343,7 @@ export default function AccountSettingsPage() {
                 <button
                     onClick={handleLogout}
                     disabled={disabled}
-                    className="w-full rounded-2xl bg-neutral-50 px-4 py-3 text-center text-sm font-medium text-neutral-700 disabled:opacity-40"
+                    className="w-full rounded-2xl bg-neutral-50 dark:bg-neutral-900 px-4 py-3 text-center text-sm font-medium text-neutral-700 dark:text-neutral-200 disabled:opacity-40"
                 >
                     Log out
                 </button>
@@ -351,7 +351,7 @@ export default function AccountSettingsPage() {
                 <button
                     onClick={handleDeactivate}
                     disabled={disabled}
-                    className="w-full rounded-2xl bg-neutral-50 px-4 py-3 text-center text-sm font-medium text-neutral-700 disabled:opacity-40"
+                    className="w-full rounded-2xl bg-neutral-50 dark:bg-neutral-900 px-4 py-3 text-center text-sm font-medium text-neutral-700 dark:text-neutral-200 disabled:opacity-40"
                 >
                     {busyAction === "deactivate"
                         ? "Deactivating..."
@@ -361,7 +361,7 @@ export default function AccountSettingsPage() {
                 <button
                     onClick={handleDelete}
                     disabled={disabled}
-                    className="w-full rounded-2xl bg-neutral-50 px-4 py-3 text-center text-sm font-medium text-red-500 disabled:opacity-40"
+                    className="w-full rounded-2xl bg-neutral-50 dark:bg-neutral-900 px-4 py-3 text-center text-sm font-medium text-red-500 disabled:opacity-40"
                 >
                     {busyAction === "delete"
                         ? "Deleting..."

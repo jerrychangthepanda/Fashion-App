@@ -287,14 +287,14 @@ export function PostCard({
     return (
         <article
             ref={cardRef}
-            className="border-b border-neutral-100 pb-4"
+            className="border-b border-neutral-100 dark:border-neutral-800 pb-4"
         >
             <div className="relative flex items-center justify-between px-4 py-3">
                 <Link
                     href={profileHref}
                     className="flex items-center gap-2"
                 >
-                    <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
+                    <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
                         {post.profilePictureUrl ? (
                             <Image
                                 src={post.profilePictureUrl}
@@ -306,17 +306,17 @@ export function PostCard({
                         ) : (
                             <User
                                 size={16}
-                                className="text-neutral-400"
+                                className="text-neutral-400 dark:text-neutral-500"
                             />
                         )}
                     </div>
 
                     <div>
-                        <p className="text-sm font-medium text-neutral-900">
+                        <p className="text-sm font-medium text-neutral-900 dark:text-neutral-50">
                             {displayUsername}
                         </p>
 
-                        <p className="text-xs text-neutral-400">
+                        <p className="text-xs text-neutral-400 dark:text-neutral-500">
                             {post.timeAgo}
                         </p>
                     </div>
@@ -328,7 +328,7 @@ export function PostCard({
                 >
                     <MoreHorizontal
                         size={18}
-                        className="text-neutral-400"
+                        className="text-neutral-400 dark:text-neutral-500"
                     />
                 </button>
 
@@ -344,7 +344,7 @@ export function PostCard({
 
             <div
                 onClick={handleImageTap}
-                className="relative mx-4 flex aspect-[4/5] items-center justify-center overflow-hidden rounded-2xl bg-neutral-100 select-none"
+                className="relative mx-4 flex aspect-[4/5] items-center justify-center overflow-hidden rounded-2xl bg-neutral-100 dark:bg-neutral-800 select-none"
             >
                 {post.imageUrl ? (
                     <Image
@@ -359,7 +359,7 @@ export function PostCard({
                 ) : (
                     <ImageIcon
                         size={28}
-                        className="text-neutral-300"
+                        className="text-neutral-300 dark:text-neutral-600"
                     />
                 )}
 
@@ -381,7 +381,7 @@ export function PostCard({
 
             <div className="px-4 pt-3">
                 {post.music && (
-                    <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl bg-neutral-100 px-3 py-2">
+                    <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl bg-neutral-100 dark:bg-neutral-800 px-3 py-2">
                         <div className="flex min-w-0 items-center gap-3">
                             {post.music.artworkUrl ? (
                                 <Image
@@ -394,20 +394,20 @@ export function PostCard({
                                     className="h-10 w-10 rounded-xl object-cover"
                                 />
                             ) : (
-                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white dark:bg-neutral-950">
                                     <Music
                                         size={16}
-                                        className="text-neutral-600"
+                                        className="text-neutral-600 dark:text-neutral-300"
                                     />
                                 </div>
                             )}
 
                             <div className="min-w-0">
-                                <p className="truncate text-sm font-medium text-neutral-900">
+                                <p className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-50">
                                     {post.music.title}
                                 </p>
 
-                                <p className="truncate text-xs text-neutral-500">
+                                <p className="truncate text-xs text-neutral-500 dark:text-neutral-400">
                                     {post.music.artist}
                                 </p>
                             </div>
@@ -415,7 +415,7 @@ export function PostCard({
 
                         <button
                             onClick={() => void toggleMusic()}
-                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white"
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white dark:bg-neutral-950"
                             aria-label={
                                 musicPlaying
                                     ? "Pause music"
@@ -425,12 +425,12 @@ export function PostCard({
                             {musicPlaying ? (
                                 <Volume2
                                     size={17}
-                                    className="text-neutral-700"
+                                    className="text-neutral-700 dark:text-neutral-200"
                                 />
                             ) : (
                                 <VolumeX
                                     size={17}
-                                    className="text-neutral-700"
+                                    className="text-neutral-700 dark:text-neutral-200"
                                 />
                             )}
                         </button>
@@ -449,7 +449,7 @@ export function PostCard({
                     </div>
                 )}
 
-                <p className="text-sm text-neutral-900">
+                <p className="text-sm text-neutral-900 dark:text-neutral-50">
                     {post.caption}
                 </p>
 
@@ -458,7 +458,7 @@ export function PostCard({
                         {post.tags.map((tag) => (
                             <span
                                 key={tag}
-                                className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-600"
+                                className="rounded-full bg-neutral-100 dark:bg-neutral-800 px-3 py-1 text-xs font-medium text-neutral-600 dark:text-neutral-300"
                             >
                                 {tag}
                             </span>
@@ -477,11 +477,11 @@ export function PostCard({
                             className={
                                 liked
                                     ? "fill-red-500 text-red-500"
-                                    : "text-neutral-500"
+                                    : "text-neutral-500 dark:text-neutral-400"
                             }
                         />
 
-                        <span className="text-sm text-neutral-500">
+                        <span className="text-sm text-neutral-500 dark:text-neutral-400">
                             {likeCount}
                         </span>
                     </button>
@@ -492,10 +492,10 @@ export function PostCard({
                     >
                         <MessageCircle
                             size={18}
-                            className="text-neutral-500"
+                            className="text-neutral-500 dark:text-neutral-400"
                         />
 
-                        <span className="text-sm text-neutral-500">
+                        <span className="text-sm text-neutral-500 dark:text-neutral-400">
                             {commentCount}
                         </span>
                     </button>

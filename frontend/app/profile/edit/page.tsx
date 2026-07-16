@@ -68,20 +68,20 @@ export default function EditProfilePage() {
 
     if (loading) {
         return (
-            <main className="flex min-h-screen items-center justify-center bg-white">
-                <p className="text-sm text-neutral-400">Loading...</p>
+            <main className="flex min-h-screen items-center justify-center bg-white dark:bg-neutral-950">
+                <p className="text-sm text-neutral-400 dark:text-neutral-500">Loading...</p>
             </main>
         );
     }
 
     return (
-        <main className="min-h-screen bg-white px-5 pt-10 pb-[var(--bottom-nav-height)]">
-            <h1 className="text-center text-xl font-semibold text-neutral-900">
+        <main className="min-h-screen bg-white dark:bg-neutral-950 px-5 pt-10 pb-[var(--bottom-nav-height)]">
+            <h1 className="text-center text-xl font-semibold text-neutral-900 dark:text-neutral-50">
                 Edit Profile
             </h1>
 
             <div className="mt-8 flex flex-col items-center">
-                <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
+                <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
                     {profileImage ? (
                         <Image
                             src={profileImage}
@@ -102,11 +102,11 @@ export default function EditProfilePage() {
                             className="h-full w-full object-cover"
                         />
                     ) : (
-                        <User size={36} className="text-neutral-400" />
+                        <User size={36} className="text-neutral-400 dark:text-neutral-500" />
                     )}
                 </div>
 
-                <label className="mt-4 cursor-pointer rounded-full bg-neutral-100 px-5 py-2 text-sm font-medium text-neutral-700">
+                <label className="mt-4 cursor-pointer rounded-full bg-neutral-100 dark:bg-neutral-800 px-5 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-200">
                     Change profile picture
                     <input
                         type="file"
@@ -119,22 +119,22 @@ export default function EditProfilePage() {
 
             <div className="mt-8 flex flex-col gap-4">
                 <div>
-                    <label className="text-sm font-medium text-neutral-700">Username</label>
+                    <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">Username</label>
                     <input
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         placeholder="Enter your username"
-                        className="mt-2 w-full rounded-2xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-neutral-400"
+                        className="mt-2 w-full rounded-2xl border border-neutral-200 dark:border-neutral-700 px-4 py-3 text-sm outline-none focus:border-neutral-400 dark:focus:border-neutral-600"
                     />
                 </div>
 
                 <div>
-                    <label className="text-sm font-medium text-neutral-700">Bio</label>
+                    <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">Bio</label>
                     <textarea
                         value={bio}
                         onChange={(e) => setBio(e.target.value)}
                         placeholder="Write your bio"
-                        className="mt-2 h-28 w-full resize-none rounded-2xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-neutral-400"
+                        className="mt-2 h-28 w-full resize-none rounded-2xl border border-neutral-200 dark:border-neutral-700 px-4 py-3 text-sm outline-none focus:border-neutral-400 dark:focus:border-neutral-600"
                     />
                 </div>
 
@@ -149,7 +149,7 @@ export default function EditProfilePage() {
                 <button
                     onClick={() => router.push("/profile")}
                     disabled={saving}
-                    className="rounded-full bg-neutral-100 px-5 py-3 text-sm font-semibold text-neutral-700 disabled:opacity-50"
+                    className="rounded-full bg-neutral-100 dark:bg-neutral-800 px-5 py-3 text-sm font-semibold text-neutral-700 dark:text-neutral-200 disabled:opacity-50"
                 >
                     Cancel
                 </button>

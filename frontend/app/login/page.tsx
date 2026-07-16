@@ -87,9 +87,9 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white px-6">
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white dark:bg-neutral-950 px-6">
             <div className="w-full max-w-[320px]">
-                <h1 className="text-center text-2xl font-semibold text-neutral-900">
+                <h1 className="text-center text-2xl font-semibold text-neutral-900 dark:text-neutral-50">
                     {mode === "signup" ? "Create account" : "Welcome back"}
                 </h1>
 
@@ -99,7 +99,7 @@ export default function LoginPage() {
                             value={username}
                             onChange={(event) => setUsername(event.target.value)}
                             placeholder="Username"
-                            className="w-full rounded-2xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-neutral-400"
+                            className="w-full rounded-2xl border border-neutral-200 dark:border-neutral-700 px-4 py-3 text-sm outline-none focus:border-neutral-400 dark:focus:border-neutral-600"
                         />
                     )}
 
@@ -108,7 +108,7 @@ export default function LoginPage() {
                         onChange={(event) => setEmail(event.target.value)}
                         placeholder="Email"
                         type="email"
-                        className="w-full rounded-2xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-neutral-400"
+                        className="w-full rounded-2xl border border-neutral-200 dark:border-neutral-700 px-4 py-3 text-sm outline-none focus:border-neutral-400 dark:focus:border-neutral-600"
                     />
 
                     <input
@@ -116,7 +116,7 @@ export default function LoginPage() {
                         onChange={(event) => setPassword(event.target.value)}
                         placeholder="Password"
                         type="password"
-                        className="w-full rounded-2xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-neutral-400"
+                        className="w-full rounded-2xl border border-neutral-200 dark:border-neutral-700 px-4 py-3 text-sm outline-none focus:border-neutral-400 dark:focus:border-neutral-600"
                     />
                 </div>
 
@@ -135,7 +135,7 @@ export default function LoginPage() {
                         setMode(mode === "signup" ? "login" : "signup");
                         setError("");
                     }}
-                    className="mt-4 w-full text-center text-sm text-neutral-500"
+                    className="mt-4 w-full text-center text-sm text-neutral-500 dark:text-neutral-400"
                 >
                     {mode === "signup" ? "Already have an account? Log in" : "New here? Sign up"}
                 </button>

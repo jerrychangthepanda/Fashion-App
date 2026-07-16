@@ -160,11 +160,11 @@ export default function EditPostPage() {
 
     if (notFound) {
         return (
-            <main className="min-h-screen bg-white px-5 pt-6 pb-[var(--bottom-nav-height)]">
+            <main className="min-h-screen bg-white dark:bg-neutral-950 px-5 pt-6 pb-[var(--bottom-nav-height)]">
                 <BackHeader title="Edit post" />
 
                 <div className="flex h-60 items-center justify-center">
-                    <p className="text-sm text-neutral-400">
+                    <p className="text-sm text-neutral-400 dark:text-neutral-500">
                         Post not found
                     </p>
                 </div>
@@ -174,9 +174,9 @@ export default function EditPostPage() {
 
     if (!post) {
         return (
-            <main className="min-h-screen bg-white px-5 pt-6 pb-[var(--bottom-nav-height)]">
+            <main className="min-h-screen bg-white dark:bg-neutral-950 px-5 pt-6 pb-[var(--bottom-nav-height)]">
                 <div className="flex h-60 items-center justify-center">
-                    <p className="text-sm text-neutral-400">
+                    <p className="text-sm text-neutral-400 dark:text-neutral-500">
                         Loading...
                     </p>
                 </div>
@@ -185,11 +185,11 @@ export default function EditPostPage() {
     }
 
     return (
-        <main className="min-h-screen bg-white px-5 pt-6 pb-[var(--bottom-nav-height)]">
+        <main className="min-h-screen bg-white dark:bg-neutral-950 px-5 pt-6 pb-[var(--bottom-nav-height)]">
             <BackHeader title="Edit post" />
 
             <div className="mt-4 flex justify-center">
-                <div className="relative aspect-[4/5] w-full max-w-[280px] overflow-hidden rounded-2xl bg-neutral-100">
+                <div className="relative aspect-[4/5] w-full max-w-[280px] overflow-hidden rounded-2xl bg-neutral-100 dark:bg-neutral-800">
                     {post.imageUrl && (
                         <Image
                             src={post.imageUrl}
@@ -209,7 +209,7 @@ export default function EditPostPage() {
                         setCaption(event.target.value)
                     }
                     placeholder="Write a caption..."
-                    className="min-h-24 w-full resize-none rounded-2xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-neutral-400"
+                    className="min-h-24 w-full resize-none rounded-2xl border border-neutral-200 dark:border-neutral-700 px-4 py-3 text-sm outline-none focus:border-neutral-400 dark:focus:border-neutral-600"
                 />
 
                 <input
@@ -218,17 +218,17 @@ export default function EditPostPage() {
                         setTagsText(event.target.value)
                     }
                     placeholder="Add tags separated by commas"
-                    className="w-full rounded-2xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-neutral-400"
+                    className="w-full rounded-2xl border border-neutral-200 dark:border-neutral-700 px-4 py-3 text-sm outline-none focus:border-neutral-400 dark:focus:border-neutral-600"
                 />
 
-                <div className="rounded-2xl bg-neutral-50 p-4">
-                    <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-neutral-900">
+                <div className="rounded-2xl bg-neutral-50 dark:bg-neutral-900 p-4">
+                    <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-neutral-900 dark:text-neutral-50">
                         <Music size={16} />
                         Music
                     </div>
 
                     {selectedSong && (
-                        <div className="mb-3 flex items-center justify-between gap-3 rounded-xl bg-white p-3">
+                        <div className="mb-3 flex items-center justify-between gap-3 rounded-xl bg-white dark:bg-neutral-950 p-3">
                             <div className="flex min-w-0 items-center gap-3">
                                 {selectedSong.artworkUrl && (
                                     <Image
@@ -241,11 +241,11 @@ export default function EditPostPage() {
                                 )}
 
                                 <div className="min-w-0">
-                                    <p className="truncate text-sm font-medium text-neutral-900">
+                                    <p className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-50">
                                         {selectedSong.title}
                                     </p>
 
-                                    <p className="truncate text-xs text-neutral-500">
+                                    <p className="truncate text-xs text-neutral-500 dark:text-neutral-400">
                                         {selectedSong.artist}
                                     </p>
                                 </div>
@@ -256,7 +256,7 @@ export default function EditPostPage() {
                                     setSelectedSong(null)
                                 }
                                 aria-label="Remove music"
-                                className="shrink-0 rounded-full bg-neutral-100 p-2"
+                                className="shrink-0 rounded-full bg-neutral-100 dark:bg-neutral-800 p-2"
                             >
                                 <Trash2
                                     size={15}
@@ -281,7 +281,7 @@ export default function EditPostPage() {
                                 }
                             }}
                             placeholder="Search a song..."
-                            className="min-w-0 flex-1 rounded-xl border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400"
+                            className="min-w-0 flex-1 rounded-xl border border-neutral-200 dark:border-neutral-700 px-3 py-2 text-sm outline-none focus:border-neutral-400 dark:focus:border-neutral-600"
                         />
 
                         <button
@@ -304,7 +304,7 @@ export default function EditPostPage() {
                                     onClick={() =>
                                         setSelectedSong(song)
                                     }
-                                    className="flex w-full items-center justify-between gap-3 rounded-xl bg-white px-3 py-2 text-left"
+                                    className="flex w-full items-center justify-between gap-3 rounded-xl bg-white dark:bg-neutral-950 px-3 py-2 text-left"
                                 >
                                     <div className="flex min-w-0 items-center gap-3">
                                         {song.artworkUrl && (
@@ -320,17 +320,17 @@ export default function EditPostPage() {
                                         )}
 
                                         <span className="min-w-0">
-                                            <span className="block truncate text-sm font-medium text-neutral-900">
+                                            <span className="block truncate text-sm font-medium text-neutral-900 dark:text-neutral-50">
                                                 {song.title}
                                             </span>
 
-                                            <span className="block truncate text-xs text-neutral-500">
+                                            <span className="block truncate text-xs text-neutral-500 dark:text-neutral-400">
                                                 {song.artist}
                                             </span>
                                         </span>
                                     </div>
 
-                                    <span className="shrink-0 text-xs text-neutral-500">
+                                    <span className="shrink-0 text-xs text-neutral-500 dark:text-neutral-400">
                                         {selectedSong?.previewUrl ===
                                             song.previewUrl
                                             ? "Selected"

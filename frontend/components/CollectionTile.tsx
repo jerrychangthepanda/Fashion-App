@@ -40,12 +40,12 @@ export function CollectionTile({
             onClick={onClick}
             className="flex min-w-0 flex-col items-center gap-1.5"
         >
-            <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-neutral-100">
+            <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-neutral-100 dark:bg-neutral-800">
                 {images.length === 0 ? (
                     <div className="flex h-full w-full items-center justify-center">
                         <Folder
                             size={22}
-                            className="text-neutral-300"
+                            className="text-neutral-300 dark:text-neutral-600"
                         />
                     </div>
                 ) : (
@@ -53,7 +53,7 @@ export function CollectionTile({
                         {[0, 1, 2, 3].map((index) => (
                             <div
                                 key={index}
-                                className="relative overflow-hidden bg-neutral-200"
+                                className="relative overflow-hidden bg-neutral-200 dark:bg-neutral-700"
                             >
                                 {images[index] && (
                                     <Image
@@ -93,7 +93,7 @@ export function CollectionTile({
                 )}
             </div>
 
-            <span className="w-full truncate text-center text-xs font-medium text-neutral-900">
+            <span className="w-full truncate text-center text-xs font-medium text-neutral-900 dark:text-neutral-50">
                 {collection.name}
             </span>
         </button>

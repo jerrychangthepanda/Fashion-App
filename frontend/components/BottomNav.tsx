@@ -16,7 +16,7 @@ export function BottomNav() {
       return null;
     }
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-neutral-200 bg-white">
+    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-950">
       <div className="mx-auto flex max-w-[480px] items-center justify-between px-10 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
         <TabLink tab={TABS[0]} active={pathname === TABS[0].href} />
 
@@ -24,7 +24,7 @@ export function BottomNav() {
           <span className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-900 text-white">
             <Plus size={20} strokeWidth={2.25} />
           </span>
-          <span className="text-[11px] font-medium text-neutral-900">Create</span>
+          <span className="text-[11px] font-medium text-neutral-900 dark:text-neutral-50">Create</span>
         </Link>
 
         <TabLink tab={TABS[1]} active={pathname === TABS[1].href} />
@@ -46,10 +46,10 @@ function TabLink({
       <Icon
         size={22}
         strokeWidth={active ? 2 : 1.6}
-        className={active ? "text-neutral-900" : "text-neutral-400"}
+        className={active ? "text-neutral-900 dark:text-neutral-50" : "text-neutral-400 dark:text-neutral-500"}
       />
       <span
-        className={`text-[11px] ${active ? "font-semibold text-neutral-900" : "font-medium text-neutral-400"}`}
+        className={`text-[11px] ${active ? "font-semibold text-neutral-900 dark:text-neutral-50" : "font-medium text-neutral-400 dark:text-neutral-500"}`}
       >
         {tab.label}
       </span>

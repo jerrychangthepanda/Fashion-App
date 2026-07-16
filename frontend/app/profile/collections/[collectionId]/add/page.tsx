@@ -115,18 +115,18 @@ export default function AddPostsToCollectionPage() {
     }
 
     return (
-        <main className="min-h-screen bg-white px-5 pt-6 pb-[var(--bottom-nav-height)]">
+        <main className="min-h-screen bg-white dark:bg-neutral-950 px-5 pt-6 pb-[var(--bottom-nav-height)]">
             <BackHeader title="Select Posts" />
 
             {loading ? (
                 <div className="flex h-40 items-center justify-center">
-                    <p className="text-sm text-neutral-400">
+                    <p className="text-sm text-neutral-400 dark:text-neutral-500">
                         Loading...
                     </p>
                 </div>
             ) : posts.length === 0 ? (
                 <div className="flex h-40 items-center justify-center">
-                    <p className="text-sm text-neutral-400">
+                    <p className="text-sm text-neutral-400 dark:text-neutral-500">
                         No posts are available
                     </p>
                 </div>
@@ -142,7 +142,7 @@ export default function AddPostsToCollectionPage() {
                                 onClick={() =>
                                     toggleSelected(post.id)
                                 }
-                                className="relative aspect-[4/5] overflow-hidden rounded-md bg-neutral-100"
+                                className="relative aspect-[4/5] overflow-hidden rounded-md bg-neutral-100 dark:bg-neutral-800"
                             >
                                 {post.imageUrl ? (
                                     <Image
@@ -159,7 +159,7 @@ export default function AddPostsToCollectionPage() {
                                     <div className="flex h-full w-full items-center justify-center">
                                         <ImageIcon
                                             size={22}
-                                            className="text-neutral-300"
+                                            className="text-neutral-300 dark:text-neutral-600"
                                         />
                                     </div>
                                 )}

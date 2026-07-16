@@ -194,9 +194,9 @@ export default function CollectionDetailPage() {
 
     if (loading) {
         return (
-            <main className="min-h-screen bg-white px-5 pt-6 pb-[var(--bottom-nav-height)]">
+            <main className="min-h-screen bg-white dark:bg-neutral-950 px-5 pt-6 pb-[var(--bottom-nav-height)]">
                 <div className="flex h-60 items-center justify-center">
-                    <p className="text-sm text-neutral-400">
+                    <p className="text-sm text-neutral-400 dark:text-neutral-500">
                         Loading...
                     </p>
                 </div>
@@ -206,13 +206,13 @@ export default function CollectionDetailPage() {
 
     if (!collection) {
         return (
-            <main className="min-h-screen bg-white px-5 pt-6 pb-[var(--bottom-nav-height)]">
+            <main className="min-h-screen bg-white dark:bg-neutral-950 px-5 pt-6 pb-[var(--bottom-nav-height)]">
                 <div className="flex h-60 items-center justify-center text-center">
                     <div>
-                        <p className="text-sm font-medium text-neutral-700">
+                        <p className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
                             Collection not found
                         </p>
-                        <p className="mt-1 text-xs text-neutral-400">
+                        <p className="mt-1 text-xs text-neutral-400 dark:text-neutral-500">
                             It may be private or may have been
                             deleted.
                         </p>
@@ -223,40 +223,40 @@ export default function CollectionDetailPage() {
     }
 
     return (
-        <main className="min-h-screen bg-white pb-[var(--bottom-nav-height)]">
-            <div className="sticky top-0 z-20 flex items-center justify-between border-b border-neutral-100 bg-white px-4 py-3">
+        <main className="min-h-screen bg-white dark:bg-neutral-950 pb-[var(--bottom-nav-height)]">
+            <div className="sticky top-0 z-20 flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-950 px-4 py-3">
                 <div className="flex min-w-0 items-center gap-2">
                     <button
                         onClick={() => router.back()}
                         aria-label="Back"
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-100"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800"
                     >
                         <ChevronLeft
                             size={20}
-                            className="text-neutral-700"
+                            className="text-neutral-700 dark:text-neutral-200"
                         />
                     </button>
 
                     <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
-                            <h1 className="truncate text-base font-semibold text-neutral-900">
+                            <h1 className="truncate text-base font-semibold text-neutral-900 dark:text-neutral-50">
                                 {collection.name}
                             </h1>
 
                             {collection.isPublic ? (
                                 <Globe2
                                     size={14}
-                                    className="shrink-0 text-neutral-400"
+                                    className="shrink-0 text-neutral-400 dark:text-neutral-500"
                                 />
                             ) : (
                                 <Lock
                                     size={14}
-                                    className="shrink-0 text-neutral-400"
+                                    className="shrink-0 text-neutral-400 dark:text-neutral-500"
                                 />
                             )}
                         </div>
 
-                        <p className="text-xs text-neutral-400">
+                        <p className="text-xs text-neutral-400 dark:text-neutral-500">
                             {collection.isPublic
                                 ? "Public collection"
                                 : "Private collection"}
@@ -272,7 +272,7 @@ export default function CollectionDetailPage() {
                         >
                             <Pencil
                                 size={14}
-                                className="text-neutral-400"
+                                className="text-neutral-400 dark:text-neutral-500"
                             />
                         </button>
                     )}
@@ -287,11 +287,11 @@ export default function CollectionDetailPage() {
                                 )
                             }
                             aria-label="Collection options"
-                            className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100"
+                            className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800"
                         >
                             <MoreHorizontal
                                 size={19}
-                                className="text-neutral-700"
+                                className="text-neutral-700 dark:text-neutral-200"
                             />
                         </button>
 
@@ -305,7 +305,7 @@ export default function CollectionDetailPage() {
                                     aria-label="Close collection options"
                                 />
 
-                                <div className="absolute right-0 top-11 z-30 w-52 overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-black/5">
+                                <div className="absolute right-0 top-11 z-30 w-52 overflow-hidden rounded-xl bg-white dark:bg-neutral-950 shadow-lg ring-1 ring-black/5 dark:ring-white/10">
                                     <button
                                         onClick={() =>
                                             void handleToggleVisibility()
@@ -313,7 +313,7 @@ export default function CollectionDetailPage() {
                                         disabled={
                                             actionInFlight
                                         }
-                                        className="flex w-full items-center gap-2 border-b border-neutral-100 px-3 py-3 text-left text-sm font-medium text-neutral-800 disabled:opacity-60"
+                                        className="flex w-full items-center gap-2 border-b border-neutral-100 dark:border-neutral-800 px-3 py-3 text-left text-sm font-medium text-neutral-800 dark:text-neutral-200 disabled:opacity-60"
                                     >
                                         {collection.isPublic ? (
                                             <Lock size={15} />
@@ -349,7 +349,7 @@ export default function CollectionDetailPage() {
 
             {posts.length === 0 && !isOwner ? (
                 <div className="flex h-48 items-center justify-center">
-                    <p className="text-sm text-neutral-400">
+                    <p className="text-sm text-neutral-400 dark:text-neutral-500">
                         No saved posts yet
                     </p>
                 </div>
@@ -359,7 +359,7 @@ export default function CollectionDetailPage() {
                         <Link
                             href={`/profile/post/${post.id}?fromCollection=${collection.id}`}
                             key={post.id}
-                            className="relative aspect-[4/5] overflow-hidden rounded-md bg-neutral-100"
+                            className="relative aspect-[4/5] overflow-hidden rounded-md bg-neutral-100 dark:bg-neutral-800"
                         >
                             {post.imageUrl ? (
                                 <Image
@@ -376,7 +376,7 @@ export default function CollectionDetailPage() {
                                 <div className="flex h-full w-full items-center justify-center">
                                     <ImageIcon
                                         size={22}
-                                        className="text-neutral-300"
+                                        className="text-neutral-300 dark:text-neutral-600"
                                     />
                                 </div>
                             )}
@@ -395,11 +395,11 @@ export default function CollectionDetailPage() {
                     {isOwner && (
                         <Link
                             href={`/profile/collections/${collection.id}/add`}
-                            className="flex aspect-[4/5] items-center justify-center rounded-md border-2 border-dashed border-neutral-300"
+                            className="flex aspect-[4/5] items-center justify-center rounded-md border-2 border-dashed border-neutral-300 dark:border-neutral-600"
                         >
                             <Plus
                                 size={22}
-                                className="text-neutral-400"
+                                className="text-neutral-400 dark:text-neutral-500"
                             />
                         </Link>
                     )}

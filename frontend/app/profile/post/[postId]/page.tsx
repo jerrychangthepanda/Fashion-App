@@ -269,28 +269,28 @@ export default function ProfilePostPage() {
 
     if (postMissing) {
         return (
-            <main className="min-h-screen bg-white pb-[var(--bottom-nav-height)]">
-                <div className="flex items-center border-b border-neutral-100 px-4 py-3">
+            <main className="min-h-screen bg-white dark:bg-neutral-950 pb-[var(--bottom-nav-height)]">
+                <div className="flex items-center border-b border-neutral-100 dark:border-neutral-800 px-4 py-3">
                     <button
                         onClick={() =>
                             router.push("/profile")
                         }
                         aria-label="Back"
-                        className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100"
+                        className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800"
                     >
                         <ChevronLeft
                             size={20}
-                            className="text-neutral-700"
+                            className="text-neutral-700 dark:text-neutral-200"
                         />
                     </button>
 
-                    <h1 className="ml-3 text-base font-semibold text-neutral-900">
+                    <h1 className="ml-3 text-base font-semibold text-neutral-900 dark:text-neutral-50">
                         Post
                     </h1>
                 </div>
 
                 <div className="flex h-60 items-center justify-center">
-                    <p className="text-sm text-neutral-400">
+                    <p className="text-sm text-neutral-400 dark:text-neutral-500">
                         Post not found
                     </p>
                 </div>
@@ -300,9 +300,9 @@ export default function ProfilePostPage() {
 
     if (!post) {
         return (
-            <main className="min-h-screen bg-white pb-[var(--bottom-nav-height)]">
+            <main className="min-h-screen bg-white dark:bg-neutral-950 pb-[var(--bottom-nav-height)]">
                 <div className="flex h-60 items-center justify-center">
-                    <p className="text-sm text-neutral-400">
+                    <p className="text-sm text-neutral-400 dark:text-neutral-500">
                         Loading...
                     </p>
                 </div>
@@ -315,23 +315,23 @@ export default function ProfilePostPage() {
     );
 
     return (
-        <main className="min-h-screen bg-white pb-[var(--bottom-nav-height)]">
-            <div className="sticky top-0 z-20 flex items-center justify-between border-b border-neutral-100 bg-white px-4 py-3">
+        <main className="min-h-screen bg-white dark:bg-neutral-950 pb-[var(--bottom-nav-height)]">
+            <div className="sticky top-0 z-20 flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-950 px-4 py-3">
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() =>
                             router.push("/profile")
                         }
                         aria-label="Back"
-                        className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100"
+                        className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800"
                     >
                         <ChevronLeft
                             size={20}
-                            className="text-neutral-700"
+                            className="text-neutral-700 dark:text-neutral-200"
                         />
                     </button>
 
-                    <h1 className="text-base font-semibold text-neutral-900">
+                    <h1 className="text-base font-semibold text-neutral-900 dark:text-neutral-50">
                         Post
                     </h1>
                 </div>
@@ -344,11 +344,11 @@ export default function ProfilePostPage() {
                             )
                         }
                         aria-label="Post options"
-                        className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100"
+                        className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800"
                     >
                         <MoreHorizontal
                             size={19}
-                            className="text-neutral-700"
+                            className="text-neutral-700 dark:text-neutral-200"
                         />
                     </button>
 
@@ -369,13 +369,13 @@ export default function ProfilePostPage() {
                 </div>
             </div>
 
-            <article className="border-b border-neutral-100 pb-4">
+            <article className="border-b border-neutral-100 dark:border-neutral-800 pb-4">
                 <div className="relative flex items-center justify-between px-4 py-3">
                     <Link
                         href="/profile"
                         className="flex items-center gap-2"
                     >
-                        <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
+                        <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
                             {post.profilePictureUrl ? (
                                 <Image
                                     src={post.profilePictureUrl}
@@ -387,24 +387,24 @@ export default function ProfilePostPage() {
                             ) : (
                                 <User
                                     size={16}
-                                    className="text-neutral-400"
+                                    className="text-neutral-400 dark:text-neutral-500"
                                 />
                             )}
                         </div>
 
                         <div>
-                            <p className="text-sm font-medium text-neutral-900">
+                            <p className="text-sm font-medium text-neutral-900 dark:text-neutral-50">
                                 {post.username || "Username"}
                             </p>
 
-                            <p className="text-xs text-neutral-400">
+                            <p className="text-xs text-neutral-400 dark:text-neutral-500">
                                 {post.timeAgo}
                             </p>
                         </div>
                     </Link>
                 </div>
 
-                <div className="relative mx-4 flex aspect-[4/5] items-center justify-center overflow-hidden rounded-2xl bg-neutral-100">
+                <div className="relative mx-4 flex aspect-[4/5] items-center justify-center overflow-hidden rounded-2xl bg-neutral-100 dark:bg-neutral-800">
                     {post.imageUrl ? (
                         <Image
                             src={post.imageUrl}
@@ -419,14 +419,14 @@ export default function ProfilePostPage() {
                     ) : (
                         <ImageIcon
                             size={28}
-                            className="text-neutral-300"
+                            className="text-neutral-300 dark:text-neutral-600"
                         />
                     )}
                 </div>
 
                 <div className="px-4 pt-3">
                     {post.music && (
-                        <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl bg-neutral-100 px-3 py-2">
+                        <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl bg-neutral-100 dark:bg-neutral-800 px-3 py-2">
                             <div className="flex min-w-0 items-center gap-3">
                                 {post.music.artworkUrl ? (
                                     <Image
@@ -440,20 +440,20 @@ export default function ProfilePostPage() {
                                         className="h-10 w-10 rounded-xl object-cover"
                                     />
                                 ) : (
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white dark:bg-neutral-950">
                                         <Music
                                             size={16}
-                                            className="text-neutral-600"
+                                            className="text-neutral-600 dark:text-neutral-300"
                                         />
                                     </div>
                                 )}
 
                                 <div className="min-w-0">
-                                    <p className="truncate text-sm font-medium text-neutral-900">
+                                    <p className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-50">
                                         {post.music.title}
                                     </p>
 
-                                    <p className="truncate text-xs text-neutral-500">
+                                    <p className="truncate text-xs text-neutral-500 dark:text-neutral-400">
                                         {post.music.artist}
                                     </p>
                                 </div>
@@ -463,7 +463,7 @@ export default function ProfilePostPage() {
                                 onClick={() =>
                                     void toggleMusic()
                                 }
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white"
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white dark:bg-neutral-950"
                                 aria-label={
                                     musicPlaying
                                         ? "Pause music"
@@ -473,12 +473,12 @@ export default function ProfilePostPage() {
                                 {musicPlaying ? (
                                     <Volume2
                                         size={17}
-                                        className="text-neutral-700"
+                                        className="text-neutral-700 dark:text-neutral-200"
                                     />
                                 ) : (
                                     <VolumeX
                                         size={17}
-                                        className="text-neutral-700"
+                                        className="text-neutral-700 dark:text-neutral-200"
                                     />
                                 )}
                             </button>
@@ -496,7 +496,7 @@ export default function ProfilePostPage() {
                         </div>
                     )}
 
-                    <p className="text-sm text-neutral-900">
+                    <p className="text-sm text-neutral-900 dark:text-neutral-50">
                         {post.caption}
                     </p>
 
@@ -505,7 +505,7 @@ export default function ProfilePostPage() {
                             {post.tags.map((tag) => (
                                 <span
                                     key={tag}
-                                    className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-600"
+                                    className="rounded-full bg-neutral-100 dark:bg-neutral-800 px-3 py-1 text-xs font-medium text-neutral-600 dark:text-neutral-300"
                                 >
                                     {tag}
                                 </span>
@@ -524,11 +524,11 @@ export default function ProfilePostPage() {
                                 className={
                                     liked
                                         ? "fill-red-500 text-red-500"
-                                        : "text-neutral-500"
+                                        : "text-neutral-500 dark:text-neutral-400"
                                 }
                             />
 
-                            <span className="text-sm text-neutral-500">
+                            <span className="text-sm text-neutral-500 dark:text-neutral-400">
                                 {likeCount}
                             </span>
                         </button>
@@ -541,10 +541,10 @@ export default function ProfilePostPage() {
                         >
                             <MessageCircle
                                 size={18}
-                                className="text-neutral-500"
+                                className="text-neutral-500 dark:text-neutral-400"
                             />
 
-                            <span className="text-sm text-neutral-500">
+                            <span className="text-sm text-neutral-500 dark:text-neutral-400">
                                 {commentCount}
                             </span>
                         </button>

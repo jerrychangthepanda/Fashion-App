@@ -171,12 +171,12 @@ export default function AddToCollectionPage() {
     }
 
     return (
-        <main className="min-h-screen bg-white px-5 pt-6 pb-[var(--bottom-nav-height)]">
+        <main className="min-h-screen bg-white dark:bg-neutral-950 px-5 pt-6 pb-[var(--bottom-nav-height)]">
             <BackHeader title="Save to Collection" />
 
             {loading ? (
                 <div className="flex h-48 items-center justify-center">
-                    <p className="text-sm text-neutral-400">
+                    <p className="text-sm text-neutral-400 dark:text-neutral-500">
                         Loading...
                     </p>
                 </div>
@@ -213,14 +213,14 @@ export default function AddToCollectionPage() {
                         }
                         className="flex flex-col items-center gap-1.5"
                     >
-                        <div className="flex aspect-square w-full items-center justify-center rounded-xl border-2 border-dashed border-neutral-300">
+                        <div className="flex aspect-square w-full items-center justify-center rounded-xl border-2 border-dashed border-neutral-300 dark:border-neutral-600">
                             <Plus
                                 size={22}
-                                className="text-neutral-400"
+                                className="text-neutral-400 dark:text-neutral-500"
                             />
                         </div>
 
-                        <span className="text-xs font-medium text-neutral-500">
+                        <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
                             Create new
                         </span>
                     </button>

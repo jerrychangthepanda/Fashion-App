@@ -194,8 +194,8 @@ export default function UserProfilePage() {
 
     if (state.status === "loading") {
         return (
-            <main className="flex min-h-screen items-center justify-center bg-white px-6">
-                <p className="text-sm text-neutral-400">
+            <main className="flex min-h-screen items-center justify-center bg-white dark:bg-neutral-950 px-6">
+                <p className="text-sm text-neutral-400 dark:text-neutral-500">
                     Loading profile...
                 </p>
             </main>
@@ -204,12 +204,12 @@ export default function UserProfilePage() {
 
     if (state.status === "not-found") {
         return (
-            <main className="flex min-h-screen flex-col items-center justify-center bg-white px-6 text-center">
-                <p className="text-sm font-medium text-neutral-700">
+            <main className="flex min-h-screen flex-col items-center justify-center bg-white dark:bg-neutral-950 px-6 text-center">
+                <p className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
                     User not found
                 </p>
 
-                <p className="mt-1 text-sm text-neutral-400">
+                <p className="mt-1 text-sm text-neutral-400 dark:text-neutral-500">
                     This account doesn&apos;t exist.
                 </p>
             </main>
@@ -218,12 +218,12 @@ export default function UserProfilePage() {
 
     if (state.status === "error") {
         return (
-            <main className="flex min-h-screen flex-col items-center justify-center bg-white px-6 text-center">
-                <p className="text-sm font-medium text-neutral-700">
+            <main className="flex min-h-screen flex-col items-center justify-center bg-white dark:bg-neutral-950 px-6 text-center">
+                <p className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
                     Profile unavailable
                 </p>
 
-                <p className="mt-1 text-sm text-neutral-400">
+                <p className="mt-1 text-sm text-neutral-400 dark:text-neutral-500">
                     {state.message}
                 </p>
 

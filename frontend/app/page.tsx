@@ -323,28 +323,28 @@ export default function FeedPage() {
     }
 
     return (
-        <main className="min-h-screen bg-white pb-[var(--bottom-nav-height)]">
-            <div className="flex items-center justify-between border-b border-neutral-100 px-5 py-4">
-                <h1 className="text-lg font-semibold text-neutral-900">
+        <main className="min-h-screen bg-white dark:bg-neutral-950 pb-[var(--bottom-nav-height)]">
+            <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 px-5 py-4">
+                <h1 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">
                     Feed
                 </h1>
 
                 <Link
                     href="/notifications"
                     aria-label="Notifications"
-                    className="relative flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100"
+                    className="relative flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800"
                 >
-                    <Bell size={19} className="text-neutral-700" />
+                    <Bell size={19} className="text-neutral-700 dark:text-neutral-200" />
 
                     {hasNewNotification && (
-                        <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white" />
+                        <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-neutral-800" />
                     )}
                 </Link>
             </div>
 
-            <div className="border-b border-neutral-100 px-4 py-3">
-                <div className="flex items-center gap-2 rounded-full bg-neutral-100 px-4 py-2.5">
-                    <Search size={18} className="text-neutral-400" />
+            <div className="border-b border-neutral-100 dark:border-neutral-800 px-4 py-3">
+                <div className="flex items-center gap-2 rounded-full bg-neutral-100 dark:bg-neutral-800 px-4 py-2.5">
+                    <Search size={18} className="text-neutral-400 dark:text-neutral-500" />
 
                     <input
                         value={searchQuery}
@@ -353,7 +353,7 @@ export default function FeedPage() {
                             setSelectedSearch(null);
                         }}
                         placeholder="Search profiles, brands, or music"
-                        className="w-full bg-transparent text-sm text-neutral-900 outline-none placeholder:text-neutral-400"
+                        className="w-full bg-transparent text-sm text-neutral-900 dark:text-neutral-50 outline-none placeholder:text-neutral-400"
                     />
 
                     {(searchQuery || selectedSearch) && (
@@ -361,27 +361,27 @@ export default function FeedPage() {
                             onClick={clearSearch}
                             aria-label="Clear search"
                         >
-                            <X size={17} className="text-neutral-400" />
+                            <X size={17} className="text-neutral-400 dark:text-neutral-500" />
                         </button>
                     )}
                 </div>
             </div>
 
             {selectedSearch && (
-                <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
+                <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 px-4 py-3">
                     <div>
-                        <p className="text-xs text-neutral-400">
+                        <p className="text-xs text-neutral-400 dark:text-neutral-500">
                             Showing {selectedSearch.type}
                         </p>
 
-                        <p className="text-sm font-medium text-neutral-900">
+                        <p className="text-sm font-medium text-neutral-900 dark:text-neutral-50">
                             {selectedSearch.label}
                         </p>
                     </div>
 
                     <button
                         onClick={clearSearch}
-                        className="rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-600"
+                        className="rounded-full bg-neutral-100 dark:bg-neutral-800 px-3 py-1.5 text-xs font-medium text-neutral-600 dark:text-neutral-300"
                     >
                         Clear
                     </button>
@@ -389,12 +389,12 @@ export default function FeedPage() {
             )}
 
             {searchQuery.trim() && !selectedSearch ? (
-                <div className="divide-y divide-neutral-100">
+                <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
                     {hasSearchResults ? (
                         <>
                             {profileMatches.length > 0 && (
                                 <section className="px-4 py-3">
-                                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">
+                                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
                                         Profiles
                                     </p>
 
@@ -404,9 +404,9 @@ export default function FeedPage() {
                                                 <Link
                                                     key={profile.username}
                                                     href={`/u/${profile.username}`}
-                                                    className="flex items-center gap-3 rounded-2xl px-2 py-2 hover:bg-neutral-50"
+                                                    className="flex items-center gap-3 rounded-2xl px-2 py-2 hover:bg-neutral-50 dark:hover:bg-neutral-900"
                                                 >
-                                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
+                                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
                                                         {profile.profilePictureUrl ? (
                                                             <Image
                                                                 src={
@@ -422,17 +422,17 @@ export default function FeedPage() {
                                                         ) : (
                                                             <User
                                                                 size={17}
-                                                                className="text-neutral-500"
+                                                                className="text-neutral-500 dark:text-neutral-400"
                                                             />
                                                         )}
                                                     </div>
 
                                                     <div>
-                                                        <p className="text-sm font-medium text-neutral-900">
+                                                        <p className="text-sm font-medium text-neutral-900 dark:text-neutral-50">
                                                             {profile.username}
                                                         </p>
 
-                                                        <p className="text-xs text-neutral-400">
+                                                        <p className="text-xs text-neutral-400 dark:text-neutral-500">
                                                             View profile
                                                         </p>
                                                     </div>
@@ -445,7 +445,7 @@ export default function FeedPage() {
 
                             {searchResults.brands.length > 0 && (
                                 <section className="px-4 py-3">
-                                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">
+                                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
                                         Brands
                                     </p>
 
@@ -460,21 +460,21 @@ export default function FeedPage() {
                                                         label: brand,
                                                     });
                                                 }}
-                                                className="flex w-full items-center gap-3 rounded-2xl px-2 py-2 text-left hover:bg-neutral-50"
+                                                className="flex w-full items-center gap-3 rounded-2xl px-2 py-2 text-left hover:bg-neutral-50 dark:hover:bg-neutral-900"
                                             >
-                                                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100">
+                                                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800">
                                                     <Tag
                                                         size={17}
-                                                        className="text-neutral-500"
+                                                        className="text-neutral-500 dark:text-neutral-400"
                                                     />
                                                 </div>
 
                                                 <div>
-                                                    <p className="text-sm font-medium text-neutral-900">
+                                                    <p className="text-sm font-medium text-neutral-900 dark:text-neutral-50">
                                                         {brand}
                                                     </p>
 
-                                                    <p className="text-xs text-neutral-400">
+                                                    <p className="text-xs text-neutral-400 dark:text-neutral-500">
                                                         View matching posts
                                                     </p>
                                                 </div>
@@ -486,7 +486,7 @@ export default function FeedPage() {
 
                             {searchResults.music.length > 0 && (
                                 <section className="px-4 py-3">
-                                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">
+                                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
                                         Music
                                     </p>
 
@@ -501,21 +501,21 @@ export default function FeedPage() {
                                                         label: song,
                                                     });
                                                 }}
-                                                className="flex w-full items-center gap-3 rounded-2xl px-2 py-2 text-left hover:bg-neutral-50"
+                                                className="flex w-full items-center gap-3 rounded-2xl px-2 py-2 text-left hover:bg-neutral-50 dark:hover:bg-neutral-900"
                                             >
-                                                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100">
+                                                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800">
                                                     <Music
                                                         size={17}
-                                                        className="text-neutral-500"
+                                                        className="text-neutral-500 dark:text-neutral-400"
                                                     />
                                                 </div>
 
                                                 <div>
-                                                    <p className="text-sm font-medium text-neutral-900">
+                                                    <p className="text-sm font-medium text-neutral-900 dark:text-neutral-50">
                                                         {song}
                                                     </p>
 
-                                                    <p className="text-xs text-neutral-400">
+                                                    <p className="text-xs text-neutral-400 dark:text-neutral-500">
                                                         View posts using this
                                                         song
                                                     </p>
@@ -528,11 +528,11 @@ export default function FeedPage() {
                         </>
                     ) : (
                         <div className="px-5 py-12 text-center">
-                            <p className="text-sm font-medium text-neutral-700">
+                            <p className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
                                 No results found
                             </p>
 
-                            <p className="mt-1 text-sm text-neutral-400">
+                            <p className="mt-1 text-sm text-neutral-400 dark:text-neutral-500">
                                 Try searching for a profile, brand, song, or
                                 artist.
                             </p>

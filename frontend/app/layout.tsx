@@ -1,9 +1,30 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 import { BottomNav } from "@/components/BottomNav";
 import { AuthGate } from "@/components/AuthGate";
+import { ThemeProvider } from "@/components/ThemeProvider";
+
+// Runs before hydration (see `strategy="beforeInteractive"` below) so
+// the correct theme class is on <html> before the first paint —
+// otherwise a user with dark mode saved would see a flash of the light
+// theme on every load. Keeps its own tiny copy of the "what's the
+// active theme" logic because it has to run standalone, before any of
+// our React/JS has loaded; ThemeProvider (components/ThemeProvider.tsx)
+// reconciles with whatever this script decided as soon as it mounts.
+const THEME_INIT_SCRIPT = `
+(function () {
+  try {
+    var stored = localStorage.getItem('theme');
+    var isDark = stored
+      ? stored === 'dark'
+      : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (isDark) document.documentElement.classList.add('dark');
+  } catch (e) {}
+})();
+`;
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,9 +50,25 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      // The inline theme-init script (below) adds the `dark` class to
+      // this element before React hydrates, whenever the saved/system
+      // theme is dark — which is exactly what we want, but it means the
+      // server-rendered className won't always match the client's DOM
+      // at hydration time. Suppressed here for that one specific,
+      // expected reason, not to hide real hydration bugs.
+      suppressHydrationWarning
     >
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-neutral-100`}
+        // text-neutral-900/text-neutral-50 here isn't decorative — it's
+        // the fallback text color every unstyled-color element (e.g.
+        // native <input>/<textarea>, which Tailwind's preflight sets to
+        // `color: inherit`) cascades down from. Most elements in this
+        // app set their own explicit text-* classes and don't need it,
+        // but a handful of form inputs (login, edit profile, edit post)
+        // rely entirely on this inherited value, so it has to stay
+        // theme-aware even though nothing here visibly "uses" the dark
+        // variant directly.
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-neutral-100 text-neutral-900 dark:bg-black dark:text-neutral-50`}
         // Browser extensions like Grammarly inject attributes (e.g.
         // data-gr-ext-installed) onto <body> before React hydrates,
         // which trips React's hydration mismatch warning even though
@@ -40,15 +77,24 @@ export default function RootLayout({
         // hide a real hydration bug anywhere else in the tree.
         suppressHydrationWarning
       >
-        <div
-          className="relative mx-auto h-dvh max-w-[480px] overflow-hidden bg-white"
-          style={{ transform: "translateZ(0)" }}
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
         >
-          <div className="h-full overflow-y-auto">
-            <AuthGate>{children}</AuthGate>
+          {THEME_INIT_SCRIPT}
+        </Script>
+
+        <ThemeProvider>
+          <div
+            className="relative mx-auto h-dvh max-w-[480px] overflow-hidden bg-white dark:bg-neutral-950"
+            style={{ transform: "translateZ(0)" }}
+          >
+            <div className="h-full overflow-y-auto">
+              <AuthGate>{children}</AuthGate>
+            </div>
+            <BottomNav />
           </div>
-          <BottomNav />
-        </div>
+        </ThemeProvider>
       </body>
     </html>
   );

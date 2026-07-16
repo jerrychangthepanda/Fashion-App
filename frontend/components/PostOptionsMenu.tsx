@@ -101,19 +101,19 @@ export function PostOptionsMenu({
                 aria-label="Close post options"
             />
 
-            <div className="absolute right-4 top-10 z-50 w-48 overflow-hidden rounded-xl border border-neutral-100 bg-white shadow-lg">
+            <div className="absolute right-4 top-10 z-50 w-48 overflow-hidden rounded-xl border border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-lg">
                 {isOwnPost ? (
                     <>
                         <Link
                             href={`/profile/post/${post.id}/edit`}
                             onClick={onClose}
-                            className="flex w-full items-center gap-2.5 border-b border-neutral-100 px-3.5 py-2.5 text-left"
+                            className="flex w-full items-center gap-2.5 border-b border-neutral-100 dark:border-neutral-800 px-3.5 py-2.5 text-left"
                         >
                             <Pencil
                                 size={16}
-                                className="text-neutral-600"
+                                className="text-neutral-600 dark:text-neutral-300"
                             />
-                            <span className="text-sm text-neutral-900">
+                            <span className="text-sm text-neutral-900 dark:text-neutral-50">
                                 Edit post
                             </span>
                         </Link>
@@ -121,13 +121,13 @@ export function PostOptionsMenu({
                         <Link
                             href={`/profile/post/${post.id}/collections`}
                             onClick={onClose}
-                            className="flex w-full items-center gap-2.5 border-b border-neutral-100 px-3.5 py-2.5 text-left"
+                            className="flex w-full items-center gap-2.5 border-b border-neutral-100 dark:border-neutral-800 px-3.5 py-2.5 text-left"
                         >
                             <Bookmark
                                 size={16}
-                                className="text-neutral-600"
+                                className="text-neutral-600 dark:text-neutral-300"
                             />
-                            <span className="text-sm text-neutral-900">
+                            <span className="text-sm text-neutral-900 dark:text-neutral-50">
                                 Save to collection
                             </span>
                         </Link>
@@ -135,13 +135,13 @@ export function PostOptionsMenu({
                         {canRemoveFromCollection && (
                             <button
                                 onClick={handleRemoveFromCollection}
-                                className="flex w-full items-center gap-2.5 border-b border-neutral-100 px-3.5 py-2.5 text-left"
+                                className="flex w-full items-center gap-2.5 border-b border-neutral-100 dark:border-neutral-800 px-3.5 py-2.5 text-left"
                             >
                                 <FolderMinus
                                     size={16}
-                                    className="text-neutral-600"
+                                    className="text-neutral-600 dark:text-neutral-300"
                                 />
-                                <span className="text-sm text-neutral-900">
+                                <span className="text-sm text-neutral-900 dark:text-neutral-50">
                                     Remove from Collection
                                 </span>
                             </button>
@@ -164,13 +164,13 @@ export function PostOptionsMenu({
                     <>
                         <button
                             onClick={() => void handleCopyLink()}
-                            className="flex w-full items-center gap-2.5 border-b border-neutral-100 px-3.5 py-2.5 text-left"
+                            className="flex w-full items-center gap-2.5 border-b border-neutral-100 dark:border-neutral-800 px-3.5 py-2.5 text-left"
                         >
                             <Link2
                                 size={16}
-                                className="text-neutral-600"
+                                className="text-neutral-600 dark:text-neutral-300"
                             />
-                            <span className="text-sm text-neutral-900">
+                            <span className="text-sm text-neutral-900 dark:text-neutral-50">
                                 Copy link
                             </span>
                         </button>
@@ -178,13 +178,13 @@ export function PostOptionsMenu({
                         <Link
                             href={`/profile/post/${post.id}/collections`}
                             onClick={onClose}
-                            className="flex w-full items-center gap-2.5 border-b border-neutral-100 px-3.5 py-2.5 text-left"
+                            className="flex w-full items-center gap-2.5 border-b border-neutral-100 dark:border-neutral-800 px-3.5 py-2.5 text-left"
                         >
                             <Bookmark
                                 size={16}
-                                className="text-neutral-600"
+                                className="text-neutral-600 dark:text-neutral-300"
                             />
-                            <span className="text-sm text-neutral-900">
+                            <span className="text-sm text-neutral-900 dark:text-neutral-50">
                                 Save to collection
                             </span>
                         </Link>
@@ -192,13 +192,13 @@ export function PostOptionsMenu({
                         {canRemoveFromCollection && (
                             <button
                                 onClick={handleRemoveFromCollection}
-                                className="flex w-full items-center gap-2.5 border-b border-neutral-100 px-3.5 py-2.5 text-left"
+                                className="flex w-full items-center gap-2.5 border-b border-neutral-100 dark:border-neutral-800 px-3.5 py-2.5 text-left"
                             >
                                 <FolderMinus
                                     size={16}
-                                    className="text-neutral-600"
+                                    className="text-neutral-600 dark:text-neutral-300"
                                 />
-                                <span className="text-sm text-neutral-900">
+                                <span className="text-sm text-neutral-900 dark:text-neutral-50">
                                     Remove from Collection
                                 </span>
                             </button>
@@ -206,13 +206,13 @@ export function PostOptionsMenu({
 
                         <button
                             onClick={handleHide}
-                            className="flex w-full items-center gap-2.5 border-b border-neutral-100 px-3.5 py-2.5 text-left"
+                            className="flex w-full items-center gap-2.5 border-b border-neutral-100 dark:border-neutral-800 px-3.5 py-2.5 text-left"
                         >
                             <EyeOff
                                 size={16}
-                                className="text-neutral-600"
+                                className="text-neutral-600 dark:text-neutral-300"
                             />
-                            <span className="text-sm text-neutral-900">
+                            <span className="text-sm text-neutral-900 dark:text-neutral-50">
                                 Hide this post
                             </span>
                         </button>
