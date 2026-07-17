@@ -123,7 +123,7 @@ export async function getPosts(): Promise<LocalPost[]> {
     const { data, error } = await supabase
         .from("posts")
         .select(
-            "*, profiles!inner(username, profile_picture_url, deactivated_at)"
+            "*, profiles!posts_user_id_fkey!inner(username, profile_picture_url, deactivated_at)"
     )
         .is("profiles.deactivated_at", null)
         .order("created_at", { ascending: false });
@@ -159,7 +159,7 @@ export async function getPostsPage(
     let query = supabase
         .from("posts")
         .select(
-            "*, profiles!inner(username, profile_picture_url, deactivated_at)"
+            "*, profiles!posts_user_id_fkey!inner(username, profile_picture_url, deactivated_at)"
     )
         .is("profiles.deactivated_at", null)
         .order("created_at", { ascending: false })
@@ -211,7 +211,7 @@ export async function getPostsByIds(
     const { data, error } = await supabase
         .from("posts")
         .select(
-            "*, profiles!inner(username, profile_picture_url, deactivated_at)")
+            "*, profiles!posts_user_id_fkey!inner(username, profile_picture_url, deactivated_at)")
         .is("profiles.deactivated_at", null)
         .in("id", uniqueIds);
 
@@ -243,7 +243,7 @@ export async function getPostsByUser(
     const { data, error } = await supabase
         .from("posts")
         .select(
-            "*, profiles!inner(username, profile_picture_url, deactivated_at)")
+            "*, profiles!posts_user_id_fkey!inner(username, profile_picture_url, deactivated_at)")
         .is("profiles.deactivated_at", null)
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
@@ -338,7 +338,7 @@ export async function getPostsByTag(
     const { data, error } = await supabase
         .from("posts")
         .select(
-            "*, profiles!inner(username, profile_picture_url, deactivated_at)"
+            "*, profiles!posts_user_id_fkey!inner(username, profile_picture_url, deactivated_at)"
         )
         .is("profiles.deactivated_at", null)
         .contains("tags", [tag])
@@ -362,7 +362,7 @@ export async function getPostsByMusic(
     const { data, error } = await supabase
         .from("posts")
         .select(
-            "*, profiles!inner(username, profile_picture_url, deactivated_at)"
+            "*, profiles!posts_user_id_fkey!inner(username, profile_picture_url, deactivated_at)"
         )
         .is("profiles.deactivated_at", null)
         .eq("music->>title", title)
@@ -387,7 +387,7 @@ export async function getPostsByUsername(
     const { data, error } = await supabase
         .from("posts")
         .select(
-            "*, profiles!inner(username, profile_picture_url, deactivated_at)"
+            "*, profiles!posts_user_id_fkey!inner(username, profile_picture_url, deactivated_at)"
         )
         .is("profiles.deactivated_at", null)
         .eq("profiles.username", username)
@@ -408,7 +408,7 @@ export async function getPostById(
     const { data, error } = await supabase
         .from("posts")
         .select(
-            "*, profiles!inner(username, profile_picture_url, deactivated_at)")
+            "*, profiles!posts_user_id_fkey!inner(username, profile_picture_url, deactivated_at)")
         .is("profiles.deactivated_at", null)
         .eq("id", postId)
         .maybeSingle();
@@ -485,7 +485,7 @@ export async function createPost(
             music: input.music ?? null,
         })
         .select(
-            "*, profiles!inner(username, profile_picture_url, deactivated_at)")
+            "*, profiles!posts_user_id_fkey!inner(username, profile_picture_url, deactivated_at)")
         .single();
 
     if (insertError) {
@@ -549,7 +549,7 @@ export async function updatePost(
         .eq("id", postId)
         .eq("user_id", user.id)
         .select(
-            "*, profiles!inner(username, profile_picture_url, deactivated_at)")
+            "*, profiles!posts_user_id_fkey!inner(username, profile_picture_url, deactivated_at)")
         .single();
 
     if (error) {

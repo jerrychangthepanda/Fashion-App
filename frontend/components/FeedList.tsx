@@ -5,6 +5,7 @@ import { PostCard } from "@/components/PostCard";
 import { PostCardSkeleton } from "@/components/PostCardSkeleton";
 import { deletePost, type LocalPost } from "@/lib/localPosts";
 import { getLikedPostIds } from "@/lib/likes";
+import { getHiddenPostIds, hidePost } from "@/lib/hiddenPosts";
 
 export function FeedList({
     posts,
@@ -28,6 +29,39 @@ export function FeedList({
 }) {
     const [hiddenPostIds, setHiddenPostIds] = useState<string[]>([]);
     const [deletingPostIds, setDeletingPostIds] = useState<string[]>([]);
+
+    // Hides persist across sessions in the hidden_posts table — load
+    // the signed-in user's full hidden-post list once on mount and
+    // merge it into local state, so a post hidden last session stays
+    // hidden instead of only living in this component's state for the
+    // rest of the current session.
+    useEffect(() => {
+        let cancelled = false;
+
+        getHiddenPostIds()
+            .then((ids) => {
+                if (cancelled || ids.size === 0) {
+                    return;
+                }
+
+                setHiddenPostIds((current) => [
+                    ...current,
+                    ...Array.from(ids).filter(
+                        (id) => !current.includes(id)
+                    ),
+                ]);
+            })
+            .catch((error) => {
+                console.error(
+                    "Could not load hidden posts:",
+                    error
+                );
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     // The id of the one post allowed to be playing audio right now.
     // Only one post's music should ever play at a time.
@@ -200,12 +234,25 @@ export function FeedList({
                                 current === post.id ? null : current
                             )
                         }
-                        onHide={() =>
+                        onHide={() => {
+                            // Optimistic: hide immediately, persist
+                            // in the background. If the write fails
+                            // the post stays hidden for the rest of
+                            // this session (matches the previous
+                            // session-only behavior) but the error is
+                            // logged rather than silently dropped.
                             setHiddenPostIds((ids) => [
                                 ...ids,
                                 post.id,
-                            ])
-                        }
+                            ]);
+
+                            hidePost(post.id).catch((error) => {
+                                console.error(
+                                    "Could not persist hidden post:",
+                                    error
+                                );
+                            });
+                        }}
                         onDelete={() => void handleDelete(post.id)}
                     />
                 </div>
