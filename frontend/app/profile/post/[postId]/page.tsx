@@ -24,9 +24,7 @@ import {
     getPostById,
     type LocalPost,
 } from "@/lib/localPosts";
-import { getCommentCount } from "@/lib/comments";
 import {
-    getLikeCount,
     isLikedByCurrentUser,
     likePost,
     unlikePost,
@@ -88,15 +86,11 @@ export default function ProfilePostPage() {
 
                 const [
                     foundPost,
-                    loadedCommentCount,
-                    loadedLikeCount,
                     likedByMe,
                     userResult,
                     collectionResult,
                 ] = await Promise.all([
                     getPostById(postId),
-                    getCommentCount(postId),
-                    getLikeCount(postId),
                     isLikedByCurrentUser(postId),
                     supabase.auth.getUser(),
                     fromCollection
@@ -114,9 +108,11 @@ export default function ProfilePostPage() {
                 }
 
                 setPost(foundPost);
-                setLikeCount(loadedLikeCount);
+                // Denormalized on posts and kept in sync by DB
+                // triggers — no separate count queries needed.
+                setLikeCount(foundPost.likes);
                 setLiked(likedByMe);
-                setCommentCount(loadedCommentCount);
+                setCommentCount(foundPost.comments);
 
                 if (userResult.error) {
                     console.warn(

@@ -14,13 +14,7 @@ import {
     VolumeX,
 } from "lucide-react";
 import type { LocalPost } from "@/lib/localPosts";
-import { getCommentCount } from "@/lib/comments";
-import {
-    getLikeCount,
-    isLikedByCurrentUser,
-    likePost,
-    unlikePost,
-} from "@/lib/likes";
+import { likePost, unlikePost } from "@/lib/likes";
 import { CommentsSheet } from "@/components/CommentsSheet";
 import { PostOptionsMenu } from "@/components/PostOptionsMenu";
 
@@ -28,6 +22,10 @@ export function PostCard({
     post,
     onHide,
     onDelete,
+    // Whether the signed-in user has already liked this post — passed
+    // down from a single batched query the parent runs for the whole
+    // page, instead of each card fetching its own like state.
+    initialLiked = false,
     // These three coordinate "only one post plays audio at a time"
     // across the whole feed. The parent (FeedList) tracks a single
     // active post id: isAudioActive tells this card whether IT is the
@@ -43,11 +41,25 @@ export function PostCard({
     post: LocalPost;
     onHide: () => void;
     onDelete?: () => void;
+    initialLiked?: boolean;
     isAudioActive?: boolean;
     onRequestAudioActive?: () => void;
     onAudioStopped?: () => void;
 }) {
-    const [liked, setLiked] = useState(false);
+    const [liked, setLiked] = useState(initialLiked);
+    // Tracks the initialLiked prop we last synced from, so a change to
+    // it (the parent's batched like-state fetch resolving after this
+    // card already mounted) can be applied during render rather than
+    // via a setState-in-effect, per React's "adjusting state when a
+    // prop changes" guidance.
+    const [syncedInitialLiked, setSyncedInitialLiked] =
+        useState(initialLiked);
+
+    if (initialLiked !== syncedInitialLiked) {
+        setSyncedInitialLiked(initialLiked);
+        setLiked(initialLiked);
+    }
+
     const [likeCount, setLikeCount] = useState(post.likes);
     const [likeActionInFlight, setLikeActionInFlight] =
         useState(false);
@@ -69,60 +81,6 @@ export function PostCard({
     useEffect(() => {
         setCurrentUserId(localStorage.getItem("userId"));
     }, []);
-
-    useEffect(() => {
-        let cancelled = false;
-
-        async function loadCommentCount() {
-            try {
-                const count = await getCommentCount(post.id);
-
-                if (!cancelled) {
-                    setCommentCount(count);
-                }
-            } catch (error) {
-                console.error(
-                    "Could not load comment count:",
-                    error
-                );
-            }
-        }
-
-        void loadCommentCount();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [post.id]);
-
-    useEffect(() => {
-        let cancelled = false;
-
-        async function loadLikeState() {
-            try {
-                const [count, likedByMe] = await Promise.all([
-                    getLikeCount(post.id),
-                    isLikedByCurrentUser(post.id),
-                ]);
-
-                if (!cancelled) {
-                    setLikeCount(count);
-                    setLiked(likedByMe);
-                }
-            } catch (error) {
-                console.error(
-                    "Could not load like state:",
-                    error
-                );
-            }
-        }
-
-        void loadLikeState();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [post.id]);
 
     const isOwnPost = post.userId === currentUserId;
     const displayUsername = post.username;

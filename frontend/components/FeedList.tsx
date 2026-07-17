@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { PostCard } from "@/components/PostCard";
 import { PostCardSkeleton } from "@/components/PostCardSkeleton";
 import { deletePost, type LocalPost } from "@/lib/localPosts";
+import { getLikedPostIds } from "@/lib/likes";
 
 export function FeedList({
     posts,
@@ -33,6 +34,52 @@ export function FeedList({
     const [activeAudioPostId, setActiveAudioPostId] = useState<
         string | null
     >(null);
+
+    // Which of the currently-rendered posts the signed-in user has
+    // liked — fetched in one batched query per page instead of one
+    // request per post (the old per-card fetch was the main N+1
+    // culprit alongside the count queries denormalization removed).
+    const [likedPostIds, setLikedPostIds] = useState<Set<string>>(
+        new Set()
+    );
+    const fetchedLikeIdsRef = useRef<Set<string>>(new Set());
+
+    useEffect(() => {
+        const newIds = posts
+            .map((post) => post.id)
+            .filter((id) => !fetchedLikeIdsRef.current.has(id));
+
+        if (newIds.length === 0) {
+            return;
+        }
+
+        newIds.forEach((id) => fetchedLikeIdsRef.current.add(id));
+
+        let cancelled = false;
+
+        getLikedPostIds(newIds)
+            .then((ids) => {
+                if (cancelled || ids.size === 0) {
+                    return;
+                }
+
+                setLikedPostIds((current) => {
+                    const next = new Set(current);
+                    ids.forEach((id) => next.add(id));
+                    return next;
+                });
+            })
+            .catch((error) => {
+                console.error(
+                    "Could not load liked posts:",
+                    error
+                );
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [posts]);
 
     const visiblePosts = posts.filter(
         (post) => !hiddenPostIds.includes(post.id)
@@ -143,6 +190,7 @@ export function FeedList({
                 <div key={post.id} className="animate-fade-in-up">
                     <PostCard
                         post={post}
+                        initialLiked={likedPostIds.has(post.id)}
                         isAudioActive={activeAudioPostId === post.id}
                         onRequestAudioActive={() =>
                             setActiveAudioPostId(post.id)

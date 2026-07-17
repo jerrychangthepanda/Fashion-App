@@ -30,6 +30,8 @@ type PostRow = {
     image_url: string;
     music: MusicTrack | null;
     created_at: string;
+    likes_count: number | null;
+    comments_count: number | null;
     profiles: {
         username: string;
         profile_picture_url: string | null;
@@ -93,8 +95,11 @@ function rowToPost(row: PostRow): LocalPost {
         timeAgo: getTimeAgo(row.created_at),
         caption: row.caption,
         tags: row.tags ?? [],
-        likes: 0,
-        comments: 0,
+        // Denormalized on posts and kept in sync by DB triggers on
+        // likes/comments insert+delete — no per-post count query
+        // needed to render the feed.
+        likes: row.likes_count ?? 0,
+        comments: row.comments_count ?? 0,
         imageUrl: publicUrl,
         music: row.music ?? undefined,
     };

@@ -61,6 +61,48 @@ export async function isLikedByCurrentUser(
     return data !== null;
 }
 
+// Batched version of isLikedByCurrentUser for rendering a whole page
+// of posts at once — one query for the page instead of one per post.
+export async function getLikedPostIds(
+    postIds: string[]
+): Promise<Set<string>> {
+    const supabasePostIds = postIds.filter(isSupabasePostId);
+
+    if (supabasePostIds.length === 0) {
+        return new Set();
+    }
+
+    const {
+        data: { user },
+        error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError) {
+        console.error(
+            "Failed to load the current user:",
+            userError
+        );
+        return new Set();
+    }
+
+    if (!user) {
+        return new Set();
+    }
+
+    const { data, error } = await supabase
+        .from("likes")
+        .select("post_id")
+        .eq("user_id", user.id)
+        .in("post_id", supabasePostIds);
+
+    if (error) {
+        console.error("Failed to load liked posts:", error);
+        throw error;
+    }
+
+    return new Set((data ?? []).map((row) => row.post_id as string));
+}
+
 export async function likePost(postId: string): Promise<void> {
     if (!isSupabasePostId(postId)) {
         throw new Error(
