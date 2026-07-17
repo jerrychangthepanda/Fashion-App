@@ -14,6 +14,8 @@ import {
     Image as ImageIcon,
     Plus,
     Search,
+    MoreHorizontal,
+    Ban,
     X,
 } from "lucide-react";
 import type { LocalPost } from "@/lib/localPosts";
@@ -32,6 +34,7 @@ import {
     unfollowUser,
     type FollowListUser,
 } from "@/lib/follows";
+import { blockUser } from "@/lib/blocks";
 
 function FollowListSheet({
     open,
@@ -246,6 +249,11 @@ export function ProfileView({
     const [followingCount, setFollowingCount] =
         useState(0);
 
+    const [showProfileMenu, setShowProfileMenu] =
+        useState(false);
+    const [blockActionInFlight, setBlockActionInFlight] =
+        useState(false);
+
     useEffect(() => {
         let cancelled = false;
 
@@ -347,6 +355,40 @@ export function ProfileView({
         }
     }
 
+    async function handleBlock() {
+        if (blockActionInFlight || !userId) {
+            return;
+        }
+
+        setShowProfileMenu(false);
+
+        const confirmed = window.confirm(
+            `Block @${username}? They won't be able to see your posts or profile, follow you, or like/comment on your posts. This also unfollows each other.`
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        setBlockActionInFlight(true);
+
+        try {
+            await blockUser(userId);
+
+            // The blocked user's profile is no longer reachable
+            // (getProfileByUsername filters blocks both ways), so
+            // this page's data is now stale — leave it entirely
+            // rather than show a broken partial state.
+            router.replace("/");
+        } catch (error) {
+            console.error("Could not block user:", error);
+
+            alert("Couldn't block this account.");
+
+            setBlockActionInFlight(false);
+        }
+    }
+
     async function handleCreateCollection() {
         const name = window.prompt(
             "Name this collection:"
@@ -417,7 +459,56 @@ export function ProfileView({
                         />
                     </Link>
                 ) : (
-                    <div className="h-9 w-9" />
+                    <div className="relative">
+                        <button
+                            onClick={() =>
+                                setShowProfileMenu(
+                                    (current) => !current
+                                )
+                            }
+                            aria-label="Profile options"
+                            className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800"
+                        >
+                            <MoreHorizontal
+                                size={19}
+                                className="text-neutral-700 dark:text-neutral-200"
+                            />
+                        </button>
+
+                        {showProfileMenu && (
+                            <>
+                                <button
+                                    onClick={() =>
+                                        setShowProfileMenu(
+                                            false
+                                        )
+                                    }
+                                    className="fixed inset-0 z-40 cursor-default"
+                                    aria-label="Close profile options"
+                                />
+
+                                <div className="absolute right-0 top-10 z-50 w-44 overflow-hidden rounded-xl border border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-lg">
+                                    <button
+                                        onClick={() =>
+                                            void handleBlock()
+                                        }
+                                        disabled={
+                                            blockActionInFlight
+                                        }
+                                        className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left disabled:opacity-60"
+                                    >
+                                        <Ban
+                                            size={16}
+                                            className="text-red-500"
+                                        />
+                                        <span className="text-sm text-red-500">
+                                            Block user
+                                        </span>
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
                 )}
             </div>
 

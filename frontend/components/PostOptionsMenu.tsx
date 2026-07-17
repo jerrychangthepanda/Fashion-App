@@ -1,6 +1,7 @@
 "use client";
 
 import {
+    Ban,
     Bookmark,
     EyeOff,
     Flag,
@@ -11,6 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import type { LocalPost } from "@/lib/localPosts";
+import { blockUser } from "@/lib/blocks";
 
 export function PostOptionsMenu({
     open,
@@ -66,6 +68,32 @@ export function PostOptionsMenu({
         }
 
         onClose();
+    }
+
+    async function handleBlock() {
+        const confirmed = window.confirm(
+            `Block @${post.username}? They won't be able to see your posts or profile, follow you, or like/comment on your posts. This also unfollows each other.`
+        );
+
+        onClose();
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            await blockUser(post.userId);
+
+            // Blocking changes what a lot of screens should show
+            // (feed, search, this post itself if it's now hidden by
+            // RLS) — a full reload is the simplest way to guarantee
+            // every one of them reflects it correctly.
+            window.location.reload();
+        } catch (error) {
+            console.error("Could not block user:", error);
+
+            alert("Couldn't block this account.");
+        }
     }
 
     function handleHide() {
@@ -219,7 +247,7 @@ export function PostOptionsMenu({
 
                         <button
                             onClick={handleReport}
-                            className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left"
+                            className="flex w-full items-center gap-2.5 border-b border-neutral-100 dark:border-neutral-800 px-3.5 py-2.5 text-left"
                         >
                             <Flag
                                 size={16}
@@ -227,6 +255,19 @@ export function PostOptionsMenu({
                             />
                             <span className="text-sm text-red-500">
                                 Report post
+                            </span>
+                        </button>
+
+                        <button
+                            onClick={() => void handleBlock()}
+                            className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left"
+                        >
+                            <Ban
+                                size={16}
+                                className="text-red-500"
+                            />
+                            <span className="text-sm text-red-500">
+                                Block user
                             </span>
                         </button>
                     </>

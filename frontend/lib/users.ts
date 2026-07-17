@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { getBlockedUserIdsBothDirections } from "@/lib/blocks";
 
 export type Profile = {
     id: string;
@@ -55,6 +56,15 @@ export async function getProfileByUsername(
         return null;
     }
 
+    // Blocked in either direction — hide from direct link the same
+    // way a not-found profile would behave, rather than exposing a
+    // separate "blocked" state that would leak who blocked whom.
+    const blockedIds = await getBlockedUserIdsBothDirections();
+
+    if (blockedIds.has(data.id)) {
+        return null;
+    }
+
     return {
         id: data.id,
         username: data.username,
@@ -75,24 +85,29 @@ export async function searchProfiles(
         return [];
     }
 
-    const { data, error } = await supabase
-        .from("profiles")
-        .select("id, username, bio, profile_picture_url")
-        .is("deactivated_at", null)
-        .ilike("username", `%${trimmed}%`)
-        .limit(10);
+    const [{ data, error }, blockedIds] = await Promise.all([
+        supabase
+            .from("profiles")
+            .select("id, username, bio, profile_picture_url")
+            .is("deactivated_at", null)
+            .ilike("username", `%${trimmed}%`)
+            .limit(10),
+        getBlockedUserIdsBothDirections(),
+    ]);
 
     if (error) {
         console.error("Failed to search profiles:", error);
         throw error;
     }
 
-    return (data ?? []).map((row) => ({
-        id: row.id,
-        username: row.username,
-        bio: row.bio ?? "",
-        profilePictureUrl: row.profile_picture_url,
-    }));
+    return (data ?? [])
+        .filter((row) => !blockedIds.has(row.id))
+        .map((row) => ({
+            id: row.id,
+            username: row.username,
+            bio: row.bio ?? "",
+            profilePictureUrl: row.profile_picture_url,
+        }));
 }
 
 function extractStoragePath(publicUrl: string): string | null {
