@@ -282,6 +282,126 @@ export async function getCurrentUserPosts(): Promise<
     return getPostsByUser(user.id);
 }
 
+// Distinct tag suggestions matching a search query, computed
+// server-side (via the search_post_tags RPC, which unnests posts.tags
+// and filters with ILIKE) instead of downloading every post to filter
+// client-side.
+export async function searchBrandSuggestions(
+    query: string
+): Promise<string[]> {
+    const trimmed = query.trim();
+
+    if (!trimmed) {
+        return [];
+    }
+
+    const { data, error } = await supabase.rpc("search_post_tags", {
+        search_query: trimmed,
+    });
+
+    if (error) {
+        console.error("Failed to search brands:", error);
+        throw error;
+    }
+
+    return ((data ?? []) as { tag: string }[]).map((row) => row.tag);
+}
+
+// Distinct (title, artist) song suggestions matching a search query,
+// computed server-side via the search_post_music RPC.
+export async function searchMusicSuggestions(
+    query: string
+): Promise<{ title: string; artist: string }[]> {
+    const trimmed = query.trim();
+
+    if (!trimmed) {
+        return [];
+    }
+
+    const { data, error } = await supabase.rpc("search_post_music", {
+        search_query: trimmed,
+    });
+
+    if (error) {
+        console.error("Failed to search music:", error);
+        throw error;
+    }
+
+    return (data ?? []) as { title: string; artist: string }[];
+}
+
+// All posts tagged with an exact brand/tag value — used once the user
+// picks a brand suggestion, to show every matching post.
+export async function getPostsByTag(
+    tag: string
+): Promise<LocalPost[]> {
+    const { data, error } = await supabase
+        .from("posts")
+        .select(
+            "*, profiles!inner(username, profile_picture_url, deactivated_at)"
+        )
+        .is("profiles.deactivated_at", null)
+        .contains("tags", [tag])
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+    if (error) {
+        console.error("Failed to load posts by tag:", error);
+        throw error;
+    }
+
+    return ((data ?? []) as PostRow[]).map(rowToPost);
+}
+
+// All posts using an exact (title, artist) song — used once the user
+// picks a music suggestion.
+export async function getPostsByMusic(
+    title: string,
+    artist: string
+): Promise<LocalPost[]> {
+    const { data, error } = await supabase
+        .from("posts")
+        .select(
+            "*, profiles!inner(username, profile_picture_url, deactivated_at)"
+        )
+        .is("profiles.deactivated_at", null)
+        .eq("music->>title", title)
+        .eq("music->>artist", artist)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+    if (error) {
+        console.error("Failed to load posts by music:", error);
+        throw error;
+    }
+
+    return ((data ?? []) as PostRow[]).map(rowToPost);
+}
+
+// All posts by a given username — mirrors getPostsByUser but takes
+// the profile's handle instead of its id, for the "profile" search
+// filter.
+export async function getPostsByUsername(
+    username: string
+): Promise<LocalPost[]> {
+    const { data, error } = await supabase
+        .from("posts")
+        .select(
+            "*, profiles!inner(username, profile_picture_url, deactivated_at)"
+        )
+        .is("profiles.deactivated_at", null)
+        .eq("profiles.username", username)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+    if (error) {
+        console.error("Failed to load posts by username:", error);
+        throw error;
+    }
+
+    return ((data ?? []) as PostRow[]).map(rowToPost);
+}
+
 export async function getPostById(
     postId: string
 ): Promise<LocalPost | null> {

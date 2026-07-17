@@ -3,7 +3,6 @@
 import {
     useCallback,
     useEffect,
-    useMemo,
     useRef,
     useState,
 } from "react";
@@ -12,8 +11,12 @@ import Link from "next/link";
 import { Bell, Music, Search, Tag, User, X } from "lucide-react";
 import { FeedList } from "@/components/FeedList";
 import {
-    getPosts,
+    getPostsByMusic,
+    getPostsByTag,
+    getPostsByUsername,
     getPostsPage,
+    searchBrandSuggestions,
+    searchMusicSuggestions,
     type LocalPost,
     type PostsPageCursor,
 } from "@/lib/localPosts";
@@ -38,7 +41,8 @@ type SearchSelection =
     }
     | {
         type: "music";
-        value: string;
+        title: string;
+        artist: string;
         label: string;
     }
     | null;
@@ -150,80 +154,60 @@ export default function FeedPage() {
         }
     }, []);
 
-    // Search needs to look across every post (for brand/music
-    // suggestions and for showing all matches once a filter is
-    // picked), which is a different job from the paginated browse
-    // feed above. Rather than loading everything up front, fetch
-    // this full corpus lazily — only once the user actually starts
-    // searching — and cache it for the rest of the session.
-    const [searchCorpus, setSearchCorpus] = useState<
-        LocalPost[] | null
-    >(null);
-
-    useEffect(() => {
-        if (!searchQuery.trim() || searchCorpus !== null) {
-            return;
-        }
-
-        let cancelled = false;
-
-        getPosts()
-            .then((allPosts) => {
-                if (!cancelled) {
-                    setSearchCorpus(allPosts);
-                }
-            })
-            .catch((error) => {
-                console.error(
-                    "Could not load posts to search:",
-                    error
-                );
-            });
-
-        return () => {
-            cancelled = true;
-        };
-    }, [searchQuery, searchCorpus]);
-
-    const postsForSearch = useMemo(
-        () => searchCorpus ?? [],
-        [searchCorpus]
-    );
-
     const [profileMatches, setProfileMatches] = useState<
         { username: string; profilePictureUrl: string | null }[]
     >([]);
+    const [brandMatches, setBrandMatches] = useState<string[]>([]);
+    const [musicMatches, setMusicMatches] = useState<
+        { title: string; artist: string }[]
+    >([]);
 
+    // Profiles, brands, and music are all searched server-side, in
+    // one debounced round trip per keystroke pause — nothing close to
+    // the old approach of downloading every post in the database on
+    // the first character typed.
     useEffect(() => {
-        let cancelled = false;
         const trimmedQuery = searchQuery.trim();
 
+        // Nothing to fetch for an empty query — the render below
+        // already treats an empty query as "no results" (see
+        // visibleProfileMatches etc.), so the stale match state left
+        // behind here is simply never shown.
         if (!trimmedQuery) {
-            setProfileMatches([]);
             return;
         }
 
+        let cancelled = false;
+
         const timeoutId = setTimeout(async () => {
             try {
-                const results = await searchProfiles(trimmedQuery);
+                const [profiles, brands, music] = await Promise.all([
+                    searchProfiles(trimmedQuery),
+                    searchBrandSuggestions(trimmedQuery),
+                    searchMusicSuggestions(trimmedQuery),
+                ]);
 
                 if (!cancelled) {
                     setProfileMatches(
-                        results.map((profile) => ({
+                        profiles.map((profile) => ({
                             username: profile.username,
                             profilePictureUrl:
                                 profile.profilePictureUrl,
                         }))
                     );
+                    setBrandMatches(brands);
+                    setMusicMatches(music);
                 }
             } catch (error) {
-                console.error("Could not search profiles:", error);
+                console.error("Could not search:", error);
 
                 if (!cancelled) {
                     setProfileMatches([]);
+                    setBrandMatches([]);
+                    setMusicMatches([]);
                 }
             }
-        }, 250);
+        }, 300);
 
         return () => {
             cancelled = true;
@@ -231,91 +215,92 @@ export default function FeedPage() {
         };
     }, [searchQuery]);
 
-    const searchResults = useMemo(() => {
-        const query = searchQuery.toLowerCase().trim();
+    // Once a filter (profile/brand/music) is picked, fetch its
+    // matching posts directly from the server instead of filtering an
+    // in-memory copy of every post.
+    const [filteredPosts, setFilteredPosts] = useState<LocalPost[]>(
+        []
+    );
+    const [loadingFilteredPosts, setLoadingFilteredPosts] =
+        useState(false);
 
-        if (!query) {
-            return {
-                brands: [],
-                music: [],
-            };
+    // Flips the loading flag on the moment selectedSearch changes —
+    // adjusted directly during render (each setSelectedSearch call
+    // produces a fresh object, so reference inequality reliably
+    // detects a change) rather than via setState-in-effect, so the
+    // skeleton shows immediately instead of one render late.
+    const [syncedSelectedSearch, setSyncedSelectedSearch] =
+        useState<SearchSelection>(null);
+
+    if (selectedSearch !== syncedSelectedSearch) {
+        setSyncedSelectedSearch(selectedSearch);
+
+        if (selectedSearch) {
+            setLoadingFilteredPosts(true);
         }
+    }
 
-        const brandMap = new Map<string, string>();
-        const musicMap = new Map<string, string>();
-
-        postsForSearch.forEach((post) => {
-            post.tags.forEach((tag) => {
-                if (tag.toLowerCase().includes(query)) {
-                    brandMap.set(tag.toLowerCase(), tag);
-                }
-            });
-
-            if (post.music) {
-                const songLabel = `${post.music.title} - ${post.music.artist}`;
-
-                if (
-                    post.music.title.toLowerCase().includes(query) ||
-                    post.music.artist.toLowerCase().includes(query)
-                ) {
-                    musicMap.set(songLabel.toLowerCase(), songLabel);
-                }
-            }
-        });
-
-        return {
-            brands: Array.from(brandMap.values()),
-            music: Array.from(musicMap.values()),
-        };
-    }, [postsForSearch, searchQuery]);
-
-    // A selected filter (profile/brand/music) matches against the
-    // full search corpus, not just the posts paginated into view so
-    // far — otherwise picking a filter could hide matches that
-    // simply hadn't been scrolled to yet.
-    const selectedPosts = useMemo(() => {
+    useEffect(() => {
+        // Nothing to fetch when no filter is picked — filteredPosts
+        // is only ever rendered inside the `selectedSearch ? ... :`
+        // branch below, so leaving stale data here is harmless.
         if (!selectedSearch) {
-            return posts;
+            return;
         }
 
-        if (selectedSearch.type === "profile") {
-            return postsForSearch.filter(
-                (post) => post.username === selectedSearch.value
-            );
-        }
+        let cancelled = false;
 
-        if (selectedSearch.type === "brand") {
-            return postsForSearch.filter((post) =>
-                post.tags.some(
-                    (tag) =>
-                        tag.toLowerCase() ===
-                        selectedSearch.value.toLowerCase()
-                )
-            );
-        }
+        const fetchMatches =
+            selectedSearch.type === "brand"
+                ? getPostsByTag(selectedSearch.value)
+                : selectedSearch.type === "music"
+                  ? getPostsByMusic(
+                        selectedSearch.title,
+                        selectedSearch.artist
+                    )
+                  : getPostsByUsername(selectedSearch.value);
 
-        if (selectedSearch.type === "music") {
-            return postsForSearch.filter((post) => {
-                if (!post.music) {
-                    return false;
+        fetchMatches
+            .then((matches) => {
+                if (!cancelled) {
+                    setFilteredPosts(matches);
                 }
-
-                const songLabel = `${post.music.title} - ${post.music.artist}`;
-
-                return (
-                    songLabel.toLowerCase() ===
-                    selectedSearch.value.toLowerCase()
+            })
+            .catch((error) => {
+                console.error(
+                    "Could not load matching posts:",
+                    error
                 );
-            });
-        }
 
-        return posts;
-    }, [posts, postsForSearch, selectedSearch]);
+                if (!cancelled) {
+                    setFilteredPosts([]);
+                }
+            })
+            .finally(() => {
+                if (!cancelled) {
+                    setLoadingFilteredPosts(false);
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [selectedSearch]);
+
+    // An empty query means "no results" regardless of whatever the
+    // last debounced fetch left in state — this is derived at render
+    // time rather than cleared via effect+setState.
+    const trimmedSearchQuery = searchQuery.trim();
+    const visibleProfileMatches = trimmedSearchQuery
+        ? profileMatches
+        : [];
+    const visibleBrandMatches = trimmedSearchQuery ? brandMatches : [];
+    const visibleMusicMatches = trimmedSearchQuery ? musicMatches : [];
 
     const hasSearchResults =
-        profileMatches.length > 0 ||
-        searchResults.brands.length > 0 ||
-        searchResults.music.length > 0;
+        visibleProfileMatches.length > 0 ||
+        visibleBrandMatches.length > 0 ||
+        visibleMusicMatches.length > 0;
 
     function clearSearch() {
         setSearchQuery("");
@@ -392,14 +377,14 @@ export default function FeedPage() {
                 <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
                     {hasSearchResults ? (
                         <>
-                            {profileMatches.length > 0 && (
+                            {visibleProfileMatches.length > 0 && (
                                 <section className="px-4 py-3">
                                     <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
                                         Profiles
                                     </p>
 
                                     <div className="space-y-1">
-                                        {profileMatches.map(
+                                        {visibleProfileMatches.map(
                                             (profile) => (
                                                 <Link
                                                     key={profile.username}
@@ -443,14 +428,14 @@ export default function FeedPage() {
                                 </section>
                             )}
 
-                            {searchResults.brands.length > 0 && (
+                            {visibleBrandMatches.length > 0 && (
                                 <section className="px-4 py-3">
                                     <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
                                         Brands
                                     </p>
 
                                     <div className="space-y-1">
-                                        {searchResults.brands.map((brand) => (
+                                        {visibleBrandMatches.map((brand) => (
                                             <button
                                                 key={brand}
                                                 onClick={() => {
@@ -484,44 +469,49 @@ export default function FeedPage() {
                                 </section>
                             )}
 
-                            {searchResults.music.length > 0 && (
+                            {visibleMusicMatches.length > 0 && (
                                 <section className="px-4 py-3">
                                     <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
                                         Music
                                     </p>
 
                                     <div className="space-y-1">
-                                        {searchResults.music.map((song) => (
-                                            <button
-                                                key={song}
-                                                onClick={() => {
-                                                    setSelectedSearch({
-                                                        type: "music",
-                                                        value: song,
-                                                        label: song,
-                                                    });
-                                                }}
-                                                className="flex w-full items-center gap-3 rounded-2xl px-2 py-2 text-left hover:bg-neutral-50 dark:hover:bg-neutral-900"
-                                            >
-                                                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800">
-                                                    <Music
-                                                        size={17}
-                                                        className="text-neutral-500 dark:text-neutral-400"
-                                                    />
-                                                </div>
+                                        {visibleMusicMatches.map((song) => {
+                                            const label = `${song.title} - ${song.artist}`;
 
-                                                <div>
-                                                    <p className="text-sm font-medium text-neutral-900 dark:text-neutral-50">
-                                                        {song}
-                                                    </p>
+                                            return (
+                                                <button
+                                                    key={label}
+                                                    onClick={() => {
+                                                        setSelectedSearch({
+                                                            type: "music",
+                                                            title: song.title,
+                                                            artist: song.artist,
+                                                            label,
+                                                        });
+                                                    }}
+                                                    className="flex w-full items-center gap-3 rounded-2xl px-2 py-2 text-left hover:bg-neutral-50 dark:hover:bg-neutral-900"
+                                                >
+                                                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800">
+                                                        <Music
+                                                            size={17}
+                                                            className="text-neutral-500 dark:text-neutral-400"
+                                                        />
+                                                    </div>
 
-                                                    <p className="text-xs text-neutral-400 dark:text-neutral-500">
-                                                        View posts using this
-                                                        song
-                                                    </p>
-                                                </div>
-                                            </button>
-                                        ))}
+                                                    <div>
+                                                        <p className="text-sm font-medium text-neutral-900 dark:text-neutral-50">
+                                                            {label}
+                                                        </p>
+
+                                                        <p className="text-xs text-neutral-400 dark:text-neutral-500">
+                                                            View posts using this
+                                                            song
+                                                        </p>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </section>
                             )}
@@ -540,12 +530,13 @@ export default function FeedPage() {
                     )}
                 </div>
             ) : selectedSearch ? (
-                // A filter is picked: selectedPosts is already the
-                // full, finite set of matches from the search corpus,
+                // A filter is picked: filteredPosts is fetched fresh
+                // from the server for that exact brand/song/profile,
                 // so there's nothing more to page in.
                 <FeedList
-                    posts={selectedPosts}
+                    posts={filteredPosts}
                     searchQuery={selectedSearch.label}
+                    loadingInitial={loadingFilteredPosts}
                 />
             ) : (
                 <FeedList
