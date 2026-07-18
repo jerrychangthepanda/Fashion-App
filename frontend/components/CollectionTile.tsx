@@ -38,7 +38,7 @@ export function CollectionTile({
     return (
         <button
             onClick={onClick}
-            className="flex min-w-0 flex-col items-center gap-1.5"
+            className="flex w-full min-w-0 flex-col items-center gap-1.5"
         >
             <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-neutral-100 dark:bg-neutral-800">
                 {images.length === 0 ? (
