@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import {
   EyeOff,
-  FolderSymlink,
   Globe,
   HelpCircle,
   Info,
@@ -64,14 +63,6 @@ export default function SettingsPage() {
             icon={EyeOff}
             label="Hidden posts"
             subtitle="Review and unhide posts"
-          />
-          <div className="h-px bg-neutral-200 dark:bg-neutral-700" />
-
-          <SettingsRow
-            href="/profile/settings/shared-collections"
-            icon={FolderSymlink}
-            label="Shared collections"
-            subtitle="Collections friends shared with you"
           />
           <div className="h-px bg-neutral-200 dark:bg-neutral-700" />
 
