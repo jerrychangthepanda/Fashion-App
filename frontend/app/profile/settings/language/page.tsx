@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import { BackHeader } from "@/components/BackHeader";
+import {
+    setLocalStorageValue,
+    useLocalStorageValue,
+} from "@/lib/useLocalStorageValue";
 
 const LANGUAGES = [
     "English",
@@ -18,16 +21,18 @@ const LANGUAGES = [
 ];
 
 export default function LanguageSettingsPage() {
-    const [selected, setSelected] = useState("English");
-
-    useEffect(() => {
-        const saved = localStorage.getItem("language");
-        if (saved) setSelected(saved);
-    }, []);
+    // Reads (and, via setLocalStorageValue below, writes) the saved
+    // language as the external store it is, instead of seeding
+    // useState from a mount effect — see lib/useLocalStorageValue.ts.
+    // Unlike the read-only cases elsewhere, this page both reads AND
+    // writes the same key from within the same mounted component
+    // (clicking a language should update the checkmark immediately),
+    // so the write goes through setLocalStorageValue rather than
+    // localStorage.setItem directly.
+    const selected = useLocalStorageValue("language") ?? "English";
 
     function selectLanguage(lang: string) {
-        setSelected(lang);
-        localStorage.setItem("language", lang);
+        setLocalStorageValue("language", lang);
     }
 
     return (

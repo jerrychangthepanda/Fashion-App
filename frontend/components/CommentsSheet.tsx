@@ -30,6 +30,7 @@ import {
     unlikeComment,
 } from "@/lib/commentLikes";
 import { supabase } from "@/lib/supabase";
+import { useLocalStorageValue } from "@/lib/useLocalStorageValue";
 
 export function CommentsSheet({
     open,
@@ -50,8 +51,12 @@ export function CommentsSheet({
         useState<PublicComment | null>(null);
     const [currentUserId, setCurrentUserId] =
         useState<string | null>(null);
-    const [myAvatarUrl, setMyAvatarUrl] =
-        useState<string | null>(null);
+    // Read straight from localStorage as the external store it is
+    // (see lib/useLocalStorageValue.ts) instead of copying it into
+    // useState from a mount effect. Only ever written from the
+    // separate /profile/edit screen, so no same-tab write
+    // notification is needed here.
+    const myAvatarUrl = useLocalStorageValue("profileImage");
     const [loading, setLoading] = useState(false);
     const [hasLoaded, setHasLoaded] = useState(false);
     const [posting, setPosting] = useState(false);
@@ -65,15 +70,6 @@ export function CommentsSheet({
         useState<Set<string>>(new Set());
     const [errorMessage, setErrorMessage] = useState("");
     const inputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-        const savedProfileImage =
-            localStorage.getItem("profileImage");
-
-        if (savedProfileImage) {
-            setMyAvatarUrl(savedProfileImage);
-        }
-    }, []);
 
     useEffect(() => {
         if (!open) {

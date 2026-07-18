@@ -17,6 +17,7 @@ import type { LocalPost } from "@/lib/localPosts";
 import { likePost, unlikePost } from "@/lib/likes";
 import { CommentsSheet } from "@/components/CommentsSheet";
 import { PostOptionsMenu } from "@/components/PostOptionsMenu";
+import { useLocalStorageValue } from "@/lib/useLocalStorageValue";
 
 export function PostCard({
     post,
@@ -70,17 +71,17 @@ export function PostCard({
     const [showOptions, setShowOptions] = useState(false);
     const [musicPlaying, setMusicPlaying] = useState(false);
 
-    const [currentUserId, setCurrentUserId] =
-        useState<string | null>(null);
+    // Read straight from localStorage as the external store it is
+    // (see lib/useLocalStorageValue.ts) instead of copying it into
+    // useState from a mount effect. Only ever written during
+    // login/profile-edit flows elsewhere, so no same-tab write
+    // notification is needed here.
+    const currentUserId = useLocalStorageValue("userId");
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
     // Ref to the whole card so an IntersectionObserver can tell when
     // it has scrolled fully out of view.
     const cardRef = useRef<HTMLElement | null>(null);
-
-    useEffect(() => {
-        setCurrentUserId(localStorage.getItem("userId"));
-    }, []);
 
     const isOwnPost = post.userId === currentUserId;
     const displayUsername = post.username;
@@ -200,6 +201,10 @@ export function PostCard({
     // isAudioActive — if it was playing, stop it.
     useEffect(() => {
         if (!isAudioActive && musicPlaying) {
+            // resetMusic also pauses/rewinds the actual <audio>
+            // element — a real DOM side effect that must stay in an
+            // effect, so its setState call is inseparable from it.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             resetMusic();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps

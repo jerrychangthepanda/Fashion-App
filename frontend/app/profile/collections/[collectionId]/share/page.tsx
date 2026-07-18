@@ -98,13 +98,23 @@ export default function ShareCollectionPage() {
   useEffect(() => {
     const trimmedQuery = query.trim();
 
+    // Nothing to fetch for an empty query or a non-owner — the
+    // results dropdown below only ever renders when query.trim() is
+    // truthy in the first place, and setSearching(true) below
+    // already masks any stale `results` the instant a real query
+    // starts again, so there's nothing to clear here. Same pattern
+    // as the debounced search in app/page.tsx.
     if (!trimmedQuery || !isOwner) {
-      setResults([]);
-      setSearching(false);
       return;
     }
 
     let cancelled = false;
+    // Announces the debounced fetch below is about to run — this is
+    // the standard "fetching data in an effect" shape React's own
+    // docs use (setState synchronously, then resolve the async call
+    // in a callback), not the "mirroring a value into state"
+    // anti-pattern the lint rule is really aimed at.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSearching(true);
 
     const timeoutId = window.setTimeout(async () => {

@@ -13,6 +13,7 @@ import {
   type Collection,
   type SharedCollection,
 } from "@/lib/collections";
+import { useLocalStorageValue } from "@/lib/useLocalStorageValue";
 
 function describeError(error: unknown): string {
   if (
@@ -29,13 +30,19 @@ function describeError(error: unknown): string {
 }
 
 export default function ProfilePage() {
-  const [username, setUsername] = useState("Username");
-  const [bio, setBio] = useState(
-    "Your bio will show up here"
-  );
-  const [profileImage, setProfileImage] = useState<
-    string | null
-  >(null);
+  // Read straight from localStorage as the external store it is (see
+  // lib/useLocalStorageValue.ts) instead of copying it into useState
+  // from a mount effect — avoids an extra render and the
+  // react-hooks/set-state-in-effect lint warning. These three are
+  // only ever written from the separate /profile/edit screen, which
+  // remounts this page on return, so no same-tab write notification
+  // is needed here.
+  const savedUsername = useLocalStorageValue("username");
+  const savedBio = useLocalStorageValue("bio");
+  const profileImage = useLocalStorageValue("profileImage");
+  const username = savedUsername || "Username";
+  const bio = savedBio || "Your bio will show up here";
+
   const [userId, setUserId] = useState<string | null>(null);
   const [posts, setPosts] = useState<LocalPost[]>([]);
   const [collections, setCollections] = useState<
@@ -47,21 +54,6 @@ export default function ProfilePage() {
 
   useEffect(() => {
     let cancelled = false;
-
-    const savedUsername = localStorage.getItem("username");
-    const savedBio = localStorage.getItem("bio");
-    const savedProfileImage =
-      localStorage.getItem("profileImage");
-
-    setUsername(savedUsername || "Username");
-
-    if (savedBio) {
-      setBio(savedBio);
-    }
-
-    if (savedProfileImage) {
-      setProfileImage(savedProfileImage);
-    }
 
     async function loadCurrentUser() {
       try {
