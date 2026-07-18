@@ -16,6 +16,7 @@ import {
     User,
     X,
 } from "lucide-react";
+import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import {
     createComment,
     deleteComment,
@@ -28,6 +29,7 @@ import {
     likeComment,
     unlikeComment,
 } from "@/lib/commentLikes";
+import { supabase } from "@/lib/supabase";
 
 export function CommentsSheet({
     open,
@@ -125,6 +127,79 @@ export function CommentsSheet({
             cancelled = true;
         };
     }, [open, postId]);
+
+    // Picks up comments/replies/edits/deletes posted by OTHER users
+    // while this sheet is open — otherwise it's a one-time snapshot
+    // from when the sheet was opened. Our own actions already update
+    // `comments` optimistically in handleSubmit/handleSaveEdit/
+    // handleDelete, so those are skipped here to avoid a redundant
+    // round trip stepping on in-flight local state. Comments are
+    // publicly readable (RLS: SELECT true), so nothing sensitive is
+    // exposed that isn't already exposed via getComments().
+    useEffect(() => {
+        if (!open || !hasLoaded) {
+            return;
+        }
+
+        function refetch() {
+            getComments(postId)
+                .then((refreshed) => {
+                    setComments(refreshed);
+                })
+                .catch((error) => {
+                    console.error(
+                        "Could not refresh comments:",
+                        error
+                    );
+                });
+        }
+
+        const channel = supabase
+            .channel(`comments:${postId}`)
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "comments",
+                    filter: `post_id=eq.${postId}`,
+                },
+                (
+                    payload: RealtimePostgresChangesPayload<{
+                        user_id: string;
+                    }>
+                ) => {
+                    if (payload.eventType === "DELETE") {
+                        // Always refetch rather than comparing
+                        // user_id — deletes are rare, so the extra
+                        // round trip (including for our own,
+                        // already-handled deletes) is harmless. Note:
+                        // this event only arrives at all because
+                        // comments has REPLICA IDENTITY FULL (see
+                        // supabase/enable-realtime-notifications-comments.sql).
+                        // Under the default identity, DELETE's old
+                        // row only carries the primary key, which
+                        // doesn't include post_id — so the
+                        // `post_id=eq.<postId>` filter above can't
+                        // match and Realtime silently drops the
+                        // event before it reaches this callback.
+                        refetch();
+                        return;
+                    }
+
+                    if (payload.new.user_id === currentUserId) {
+                        return;
+                    }
+
+                    refetch();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            void supabase.removeChannel(channel);
+        };
+    }, [open, hasLoaded, postId, currentUserId]);
 
     useEffect(() => {
         if (!open || !hasLoaded) {

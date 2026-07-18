@@ -22,6 +22,7 @@ import {
 } from "@/lib/localPosts";
 import { searchProfiles } from "@/lib/users";
 import { getUnreadNotificationCount } from "@/lib/notifications";
+import { supabase } from "@/lib/supabase";
 
 // How many posts load at a time, both on first paint and each time
 // the user scrolls near the bottom — keeps the initial feed light
@@ -93,6 +94,52 @@ export default function FeedPage() {
 
         return () => {
             cancelled = true;
+        };
+    }, []);
+
+    // Catches likes/comments/follows/collection shares that land while
+    // this tab is already open — without this, the dot only reflects
+    // whatever was unread at the moment the feed mounted. RLS on
+    // notifications (recipient_id = auth.uid()) means Realtime only
+    // ever delivers this viewer's own rows, so no filter bypass risk.
+    useEffect(() => {
+        let cancelled = false;
+        let channel: ReturnType<typeof supabase.channel> | null = null;
+
+        async function subscribeToNotifications() {
+            const {
+                data: { user },
+            } = await supabase.auth.getUser();
+
+            if (cancelled || !user) {
+                return;
+            }
+
+            channel = supabase
+                .channel(`notifications-bell:${user.id}`)
+                .on(
+                    "postgres_changes",
+                    {
+                        event: "INSERT",
+                        schema: "public",
+                        table: "notifications",
+                        filter: `recipient_id=eq.${user.id}`,
+                    },
+                    () => {
+                        setHasNewNotification(true);
+                    }
+                )
+                .subscribe();
+        }
+
+        void subscribeToNotifications();
+
+        return () => {
+            cancelled = true;
+
+            if (channel) {
+                void supabase.removeChannel(channel);
+            }
         };
     }, []);
 
