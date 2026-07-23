@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 import type { LocalPost } from "@/lib/localPosts";
 import { blockUser } from "@/lib/blocks";
+import { reportPost } from "@/lib/reports";
 
 export function PostOptionsMenu({
     open,
@@ -60,14 +61,31 @@ export function PostOptionsMenu({
         onClose();
     }
 
-    function handleReport() {
-        const confirmed = window.confirm("Report this post?");
-
-        if (confirmed) {
-            alert("Reporting isn't fully wired up yet, but noted.");
-        }
+    async function handleReport() {
+        const confirmed = window.confirm(
+            "Report this post? Our team will review it."
+        );
 
         onClose();
+
+        if (!confirmed) {
+            return;
+        }
+
+        const rawReason = window.prompt(
+            "Optional: what's wrong with this post? (leave blank to skip)"
+        );
+        const reason =
+            rawReason && rawReason.trim() ? rawReason.trim() : null;
+
+        try {
+            await reportPost(post.id, post.userId, reason);
+            alert("Thanks, this post has been reported.");
+        } catch (error) {
+            console.error("Could not report post:", error);
+
+            alert("Couldn't report this post.");
+        }
     }
 
     async function handleBlock() {
@@ -246,7 +264,7 @@ export function PostOptionsMenu({
                         </button>
 
                         <button
-                            onClick={handleReport}
+                            onClick={() => void handleReport()}
                             className="flex w-full items-center gap-2.5 border-b border-neutral-100 dark:border-neutral-800 px-3.5 py-2.5 text-left"
                         >
                             <Flag

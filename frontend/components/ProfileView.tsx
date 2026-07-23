@@ -16,6 +16,7 @@ import {
     Search,
     MoreHorizontal,
     Ban,
+    Flag,
     X,
 } from "lucide-react";
 import type { LocalPost } from "@/lib/localPosts";
@@ -36,6 +37,7 @@ import {
     type FollowListUser,
 } from "@/lib/follows";
 import { blockUser } from "@/lib/blocks";
+import { reportUser } from "@/lib/reports";
 
 function FollowListSheet({
     open,
@@ -256,6 +258,8 @@ export function ProfileView({
         useState(false);
     const [blockActionInFlight, setBlockActionInFlight] =
         useState(false);
+    const [reportActionInFlight, setReportActionInFlight] =
+        useState(false);
 
     useEffect(() => {
         let cancelled = false;
@@ -392,6 +396,41 @@ export function ProfileView({
         }
     }
 
+    async function handleReportUser() {
+        if (reportActionInFlight || !userId) {
+            return;
+        }
+
+        setShowProfileMenu(false);
+
+        const confirmed = window.confirm(
+            `Report @${username}? Our team will review it.`
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        const rawReason = window.prompt(
+            "Optional: what's wrong with this profile? (leave blank to skip)"
+        );
+        const reason =
+            rawReason && rawReason.trim() ? rawReason.trim() : null;
+
+        setReportActionInFlight(true);
+
+        try {
+            await reportUser(userId, reason);
+            alert("Thanks, this profile has been reported.");
+        } catch (error) {
+            console.error("Could not report user:", error);
+
+            alert("Couldn't report this profile.");
+        } finally {
+            setReportActionInFlight(false);
+        }
+    }
+
     async function handleCreateCollection() {
         const name = window.prompt(
             "Name this collection:"
@@ -491,6 +530,24 @@ export function ProfileView({
                                 />
 
                                 <div className="absolute right-0 top-10 z-50 w-44 overflow-hidden rounded-xl border border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-lg">
+                                    <button
+                                        onClick={() =>
+                                            void handleReportUser()
+                                        }
+                                        disabled={
+                                            reportActionInFlight
+                                        }
+                                        className="flex w-full items-center gap-2.5 border-b border-neutral-100 dark:border-neutral-800 px-3.5 py-2.5 text-left disabled:opacity-60"
+                                    >
+                                        <Flag
+                                            size={16}
+                                            className="text-red-500"
+                                        />
+                                        <span className="text-sm text-red-500">
+                                            Report user
+                                        </span>
+                                    </button>
+
                                     <button
                                         onClick={() =>
                                             void handleBlock()
