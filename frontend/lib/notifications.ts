@@ -175,9 +175,11 @@ export async function getNotifications(
 
 export async function getUnreadNotificationCount(): Promise<number> {
   const {
-    data: { user },
+    data: { session },
     error: userError,
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getSession();
+
+  const user = session?.user ?? null;
 
   if (userError) {
     console.error(
@@ -210,9 +212,11 @@ export async function getUnreadNotificationCount(): Promise<number> {
 
 export async function markAllNotificationsRead(): Promise<void> {
   const {
-    data: { user },
+    data: { session },
     error: userError,
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getSession();
+
+  const user = session?.user ?? null;
 
   if (userError) {
     throw userError;

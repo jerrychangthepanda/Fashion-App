@@ -10,8 +10,10 @@ export type Profile = {
 
 export async function getMyProfile(): Promise<Profile | null> {
     const {
-        data: { user },
-    } = await supabase.auth.getUser();
+        data: { session },
+    } = await supabase.auth.getSession();
+
+    const user = session?.user ?? null;
 
     if (!user) return null;
 
@@ -123,8 +125,10 @@ export async function updateMyProfile(updates: {
     profilePictureFile?: File | null;
 }): Promise<Profile> {
     const {
-        data: { user },
-    } = await supabase.auth.getUser();
+        data: { session },
+    } = await supabase.auth.getSession();
+
+    const user = session?.user ?? null;
 
     if (!user) {
         throw new Error("You must be signed in.");

@@ -10,9 +10,11 @@ import {
 // state.
 export async function getHiddenPostIds(): Promise<Set<string>> {
   const {
-    data: { user },
+    data: { session },
     error: userError,
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getSession();
+
+  const user = session?.user ?? null;
 
   if (userError) {
     console.error("Failed to load the current user:", userError);
@@ -42,9 +44,11 @@ export async function getHiddenPostIds(): Promise<Set<string>> {
 // getPostsByIds preserves the order of the supplied ids.
 export async function getHiddenPosts(): Promise<LocalPost[]> {
   const {
-    data: { user },
+    data: { session },
     error: userError,
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getSession();
+
+  const user = session?.user ?? null;
 
   if (userError) {
     throw userError;
@@ -78,9 +82,11 @@ export async function hidePost(postId: string): Promise<void> {
   }
 
   const {
-    data: { user },
+    data: { session },
     error: userError,
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getSession();
+
+  const user = session?.user ?? null;
 
   if (userError) {
     throw userError;
@@ -110,9 +116,11 @@ export async function hidePost(postId: string): Promise<void> {
 
 export async function unhidePost(postId: string): Promise<void> {
   const {
-    data: { user },
+    data: { session },
     error: userError,
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getSession();
+
+  const user = session?.user ?? null;
 
   if (userError) {
     throw userError;

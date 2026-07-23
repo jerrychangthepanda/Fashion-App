@@ -7,9 +7,11 @@ export async function isFollowing(
     targetUserId: string
 ): Promise<boolean> {
     const {
-        data: { user },
+        data: { session },
         error: userError,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getSession();
+
+    const user = session?.user ?? null;
 
     if (userError) {
         console.error(
@@ -42,9 +44,11 @@ export async function followUser(
     targetUserId: string
 ): Promise<void> {
     const {
-        data: { user },
+        data: { session },
         error: userError,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getSession();
+
+    const user = session?.user ?? null;
 
     if (userError) {
         throw userError;
@@ -78,9 +82,11 @@ export async function unfollowUser(
     targetUserId: string
 ): Promise<void> {
     const {
-        data: { user },
+        data: { session },
         error: userError,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getSession();
+
+    const user = session?.user ?? null;
 
     if (userError) {
         throw userError;

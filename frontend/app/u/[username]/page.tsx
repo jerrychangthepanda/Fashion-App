@@ -97,9 +97,11 @@ export default function UserProfilePage() {
                 }
 
                 const {
-                    data: { user },
+                    data: { session },
                     error: userError,
-                } = await supabase.auth.getUser();
+                } = await supabase.auth.getSession();
+
+                const user = session?.user ?? null;
 
                 if (userError) {
                     console.warn(

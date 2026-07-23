@@ -162,9 +162,11 @@ function rowToCollection(row: CollectionRow): Collection {
 
 async function getCurrentUserId(): Promise<string> {
   const {
-    data: { user },
+    data: { session },
     error,
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getSession();
+
+  const user = session?.user ?? null;
 
   if (error) {
     throw error;
@@ -333,9 +335,11 @@ export async function getCollectionPermission(
   }
 
   const {
-    data: { user },
+    data: { session },
     error: userError,
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getSession();
+
+  const user = session?.user ?? null;
 
   if (userError) {
     throw userError;

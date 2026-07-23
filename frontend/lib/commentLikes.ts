@@ -4,9 +4,11 @@ export async function likeComment(
     commentId: string
 ): Promise<void> {
     const {
-        data: { user },
+        data: { session },
         error: userError,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getSession();
+
+    const user = session?.user ?? null;
 
     if (userError) {
         throw userError;
@@ -39,9 +41,11 @@ export async function unlikeComment(
     commentId: string
 ): Promise<void> {
     const {
-        data: { user },
+        data: { session },
         error: userError,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getSession();
+
+    const user = session?.user ?? null;
 
     if (userError) {
         throw userError;

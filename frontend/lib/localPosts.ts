@@ -263,9 +263,11 @@ export async function getCurrentUserPosts(): Promise<
     LocalPost[]
 > {
     const {
-        data: { user },
+        data: { session },
         error,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getSession();
+
+    const user = session?.user ?? null;
 
     if (error) {
         console.error(
@@ -429,9 +431,11 @@ export async function createPost(
     input: CreatePostInput
 ): Promise<LocalPost> {
     const {
-        data: { user },
+        data: { session },
         error: userError,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getSession();
+
+    const user = session?.user ?? null;
 
     if (userError) {
         throw userError;
@@ -512,9 +516,11 @@ export async function updatePost(
     }
 ): Promise<LocalPost> {
     const {
-        data: { user },
+        data: { session },
         error: userError,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getSession();
+
+    const user = session?.user ?? null;
 
     if (userError) {
         throw userError;
@@ -567,9 +573,11 @@ export async function deletePost(
     postId: string
 ): Promise<void> {
     const {
-        data: { user },
+        data: { session },
         error: userError,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getSession();
+
+    const user = session?.user ?? null;
 
     if (userError) {
         throw userError;

@@ -92,7 +92,7 @@ export default function ProfilePostPage() {
                 ] = await Promise.all([
                     getPostById(postId),
                     isLikedByCurrentUser(postId),
-                    supabase.auth.getUser(),
+                    supabase.auth.getSession(),
                     fromCollection
                         ? getCollectionById(fromCollection)
                         : Promise.resolve(null),
@@ -122,7 +122,7 @@ export default function ProfilePostPage() {
                 }
 
                 const signedInUserId =
-                    userResult.data.user?.id ?? null;
+                    userResult.data.session?.user?.id ?? null;
 
                 setCurrentUserId(signedInUserId);
 

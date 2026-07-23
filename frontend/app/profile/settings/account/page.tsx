@@ -38,9 +38,11 @@ export default function AccountSettingsPage() {
 
         async function loadAccount() {
             const {
-                data: { user },
+                data: { session },
                 error: userError,
-            } = await supabase.auth.getUser();
+            } = await supabase.auth.getSession();
+
+            const user = session?.user ?? null;
 
             if (userError || !user) {
                 if (!cancelled) {

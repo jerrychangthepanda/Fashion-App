@@ -97,16 +97,16 @@ function rowToComment(
 
 export async function getCurrentUserId(): Promise<string | null> {
     const {
-        data: { user },
+        data: { session },
         error,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getSession();
 
     if (error) {
         console.error("Failed to load current user:", error);
         return null;
     }
 
-    return user?.id ?? null;
+    return session?.user?.id ?? null;
 }
 
 export async function getCommentCount(postId: string): Promise<number> {
@@ -157,7 +157,7 @@ export async function getComments(
             )
             .eq("post_id", postId)
             .order("created_at", { ascending: false }),
-        supabase.auth.getUser(),
+        supabase.auth.getSession(),
     ]);
 
     if (commentsResult.error) {
@@ -170,7 +170,7 @@ export async function getComments(
 
     const rows = (commentsResult.data ?? []) as unknown as CommentRow[];
     const commentIds = rows.map((row) => row.id);
-    const currentUserId = userResult.data.user?.id ?? null;
+    const currentUserId = userResult.data.session?.user?.id ?? null;
 
     if (commentIds.length === 0) {
         return [];
@@ -238,9 +238,11 @@ export async function createComment(
     }
 
     const {
-        data: { user },
+        data: { session },
         error: userError,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getSession();
+
+    const user = session?.user ?? null;
 
     if (userError) {
         throw userError;
@@ -315,9 +317,11 @@ export async function updateComment(
     }
 
     const {
-        data: { user },
+        data: { session },
         error: userError,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getSession();
+
+    const user = session?.user ?? null;
 
     if (userError) {
         throw userError;
@@ -355,9 +359,11 @@ export async function deleteComment(
     commentId: string
 ): Promise<void> {
     const {
-        data: { user },
+        data: { session },
         error: userError,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getSession();
+
+    const user = session?.user ?? null;
 
     if (userError) {
         throw userError;

@@ -30,9 +30,11 @@ export async function isLikedByCurrentUser(
     }
 
     const {
-        data: { user },
+        data: { session },
         error: userError,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getSession();
+
+    const user = session?.user ?? null;
 
     if (userError) {
         console.error(
@@ -73,9 +75,11 @@ export async function getLikedPostIds(
     }
 
     const {
-        data: { user },
+        data: { session },
         error: userError,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getSession();
+
+    const user = session?.user ?? null;
 
     if (userError) {
         console.error(
@@ -111,9 +115,11 @@ export async function likePost(postId: string): Promise<void> {
     }
 
     const {
-        data: { user },
+        data: { session },
         error: userError,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getSession();
+
+    const user = session?.user ?? null;
 
     if (userError) {
         throw userError;
@@ -149,9 +155,11 @@ export async function unlikePost(postId: string): Promise<void> {
     }
 
     const {
-        data: { user },
+        data: { session },
         error: userError,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getSession();
+
+    const user = session?.user ?? null;
 
     if (userError) {
         throw userError;
