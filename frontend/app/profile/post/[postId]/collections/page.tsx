@@ -79,12 +79,33 @@ export default function AddToCollectionPage() {
     const isAlreadySaved = collection.postIds.includes(postId);
     setBusyCollectionId(collectionId);
 
+    // Flip the checkmark immediately — tapping a collection tile
+    // should feel instant, same as liking a post. Reverted below if
+    // the write actually fails.
+    setCollections((current) =>
+      current.map((item) => {
+        if (item.id !== collectionId) {
+          return item;
+        }
+
+        return {
+          ...item,
+          postIds: isAlreadySaved
+            ? item.postIds.filter((id) => id !== postId)
+            : [postId, ...item.postIds],
+        };
+      })
+    );
+
     try {
       if (isAlreadySaved) {
         await removePostFromCollection(collectionId, postId);
       } else {
         await addPostToCollection(collectionId, postId);
       }
+    } catch (error) {
+      console.error("Couldn't update the collection:", error);
+      alert("Couldn't update the collection.");
 
       setCollections((current) =>
         current.map((item) => {
@@ -95,14 +116,11 @@ export default function AddToCollectionPage() {
           return {
             ...item,
             postIds: isAlreadySaved
-              ? item.postIds.filter((id) => id !== postId)
-              : [postId, ...item.postIds],
+              ? [postId, ...item.postIds]
+              : item.postIds.filter((id) => id !== postId),
           };
         })
       );
-    } catch (error) {
-      console.error("Couldn't update the collection:", error);
-      alert("Couldn't update the collection.");
     } finally {
       setBusyCollectionId(null);
     }

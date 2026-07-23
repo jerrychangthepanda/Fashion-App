@@ -57,6 +57,7 @@ export function CommentsSheet({
     // separate /profile/edit screen, so no same-tab write
     // notification is needed here.
     const myAvatarUrl = useLocalStorageValue("profileImage");
+    const myUsername = useLocalStorageValue("username");
     const [loading, setLoading] = useState(false);
     const [hasLoaded, setHasLoaded] = useState(false);
     const [posting, setPosting] = useState(false);
@@ -251,28 +252,88 @@ export function CommentsSheet({
             return;
         }
 
-        try {
-            setPosting(true);
-            setErrorMessage("");
+        const activeReply = replyingTo;
 
-            const newComment = await createComment(
-                postId,
-                trimmedDraft,
-                replyingTo?.id ?? null
-            );
+        // Render the comment immediately using what we already know
+        // client-side, rather than waiting on the round trip — the
+        // temp id is swapped for the server's real comment (real id,
+        // authoritative username/timestamp) once createComment
+        // resolves. Only possible once currentUserId has loaded; on
+        // the rare chance it hasn't, this falls back to the old
+        // wait-then-render behavior below instead of guessing.
+        const optimisticId = `optimistic-${crypto.randomUUID()}`;
+        const optimisticComment: PublicComment | null =
+            currentUserId
+                ? {
+                      id: optimisticId,
+                      postId,
+                      userId: currentUserId,
+                      username: myUsername || "You",
+                      avatarUrl: myAvatarUrl ?? null,
+                      body: trimmedDraft,
+                      parentCommentId: activeReply?.id ?? null,
+                      createdAt: new Date().toISOString(),
+                      updatedAt: null,
+                      timeAgo: "now",
+                      likeCount: 0,
+                      likedByMe: false,
+                  }
+                : null;
 
+        setErrorMessage("");
+
+        if (optimisticComment) {
             setComments((currentComments) =>
-                replyingTo
-                    ? [...currentComments, newComment]
-                    : [newComment, ...currentComments]
+                activeReply
+                    ? [...currentComments, optimisticComment]
+                    : [optimisticComment, ...currentComments]
             );
             setDraft("");
             setReplyingTo(null);
+        }
+
+        setPosting(true);
+
+        try {
+            const newComment = await createComment(
+                postId,
+                trimmedDraft,
+                activeReply?.id ?? null
+            );
+
+            if (optimisticComment) {
+                setComments((currentComments) =>
+                    currentComments.map((comment) =>
+                        comment.id === optimisticId
+                            ? newComment
+                            : comment
+                    )
+                );
+            } else {
+                setComments((currentComments) =>
+                    activeReply
+                        ? [...currentComments, newComment]
+                        : [newComment, ...currentComments]
+                );
+                setDraft("");
+                setReplyingTo(null);
+            }
         } catch (error) {
             console.error(
                 "Could not create comment:",
                 error
             );
+
+            if (optimisticComment) {
+                setComments((currentComments) =>
+                    currentComments.filter(
+                        (comment) => comment.id !== optimisticId
+                    )
+                );
+                setDraft(trimmedDraft);
+                setReplyingTo(activeReply);
+            }
+
             setErrorMessage(
                 error instanceof Error
                     ? error.message
@@ -288,39 +349,67 @@ export function CommentsSheet({
             return;
         }
 
+        // Captured before removal so a failed delete can put these
+        // back exactly as they were, rather than just erroring out
+        // with the comment already gone from view.
+        const removedComments = comments.filter(
+            (comment) =>
+                comment.id === commentId ||
+                comment.parentCommentId === commentId
+        );
+
+        if (removedComments.length === 0) {
+            return;
+        }
+
+        setDeletingId(commentId);
+        setErrorMessage("");
+
+        setComments((currentComments) =>
+            currentComments.filter(
+                (comment) =>
+                    comment.id !== commentId &&
+                    comment.parentCommentId !== commentId
+            )
+        );
+
+        if (
+            replyingTo?.id === commentId ||
+            replyingTo?.parentCommentId === commentId
+        ) {
+            setReplyingTo(null);
+        }
+
+        if (
+            editingId === commentId ||
+            comments.find(
+                (comment) => comment.id === editingId
+            )?.parentCommentId === commentId
+        ) {
+            cancelEdit();
+        }
+
         try {
-            setDeletingId(commentId);
-            setErrorMessage("");
             await deleteComment(commentId);
-
-            setComments((currentComments) =>
-                currentComments.filter(
-                    (comment) =>
-                        comment.id !== commentId &&
-                        comment.parentCommentId !== commentId
-                )
-            );
-
-            if (
-                replyingTo?.id === commentId ||
-                replyingTo?.parentCommentId === commentId
-            ) {
-                setReplyingTo(null);
-            }
-
-            if (
-                editingId === commentId ||
-                comments.find(
-                    (comment) => comment.id === editingId
-                )?.parentCommentId === commentId
-            ) {
-                cancelEdit();
-            }
         } catch (error) {
             console.error(
                 "Could not delete comment:",
                 error
             );
+
+            setComments((currentComments) => {
+                const existingIds = new Set(
+                    currentComments.map((comment) => comment.id)
+                );
+
+                return [
+                    ...currentComments,
+                    ...removedComments.filter(
+                        (comment) => !existingIds.has(comment.id)
+                    ),
+                ];
+            });
+
             setErrorMessage(
                 error instanceof Error
                     ? error.message
@@ -357,15 +446,35 @@ export function CommentsSheet({
             (comment) => comment.id === commentId
         );
 
-        if (original && trimmed === original.body) {
+        if (!original) {
             cancelEdit();
             return;
         }
 
-        try {
-            setSavingEdit(true);
-            setErrorMessage("");
+        if (trimmed === original.body) {
+            cancelEdit();
+            return;
+        }
 
+        const optimisticUpdatedAt = new Date().toISOString();
+
+        setSavingEdit(true);
+        setErrorMessage("");
+
+        setComments((currentComments) =>
+            currentComments.map((currentComment) =>
+                currentComment.id === commentId
+                    ? {
+                          ...currentComment,
+                          body: trimmed,
+                          updatedAt: optimisticUpdatedAt,
+                      }
+                    : currentComment
+            )
+        );
+        cancelEdit();
+
+        try {
             const result = await updateComment(
                 commentId,
                 trimmed
@@ -382,12 +491,24 @@ export function CommentsSheet({
                         : currentComment
                 )
             );
-            cancelEdit();
         } catch (error) {
             console.error(
                 "Could not update comment:",
                 error
             );
+
+            setComments((currentComments) =>
+                currentComments.map((currentComment) =>
+                    currentComment.id === commentId
+                        ? {
+                              ...currentComment,
+                              body: original.body,
+                              updatedAt: original.updatedAt,
+                          }
+                        : currentComment
+                )
+            );
+
             setErrorMessage(
                 error instanceof Error
                     ? error.message
